@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Register - Matcha{% endblock %}
+{% block content %}
+<div class="form-box">
+    <h1>Register</h1>
+    <form method="post" action="{{ url_for('auth.register') }}" novalidate>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required autocomplete="email" value="{{ request.form.email or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autocomplete="username" value="{{ request.form.username or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="first_name">First name</label>
+            <input type="text" id="first_name" name="first_name" required autocomplete="given-name" value="{{ request.form.first_name or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="last_name">Last name</label>
+            <input type="text" id="last_name" name="last_name" required autocomplete="family-name" value="{{ request.form.last_name or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autocomplete="new-password">
+        </div>
+        <div class="form-group">
+            <label for="password_confirm">Confirm password</label>
+            <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-block">Register</button>
+    </form>
+    <p class="form-links"><a href="{{ url_for('auth.login') }}">Already have an account? Log in</a></p>
+</div>
+{% endblock %}

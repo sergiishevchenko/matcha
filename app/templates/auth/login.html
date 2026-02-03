@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Login - Matcha{% endblock %}
+{% block content %}
+<div class="form-box">
+    <h1>Login</h1>
+    <form method="post" action="{{ url_for('auth.login') }}" novalidate>
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autocomplete="username" value="{{ request.form.username or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-block">Login</button>
+    </form>
+    <p class="form-links">
+        <a href="{{ url_for('auth.register') }}">Create an account</a><br>
+        <a href="{{ url_for('auth.reset_password_request') }}">Forgot password?</a>
+    </p>
+</div>
+{% endblock %}
