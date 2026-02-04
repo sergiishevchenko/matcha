@@ -55,4 +55,9 @@ def create_app(config_class=None):
             return redirect(url_for("browse.suggestions"))
         return redirect(url_for("auth.login"))
 
+    @app.route("/uploads/<path:filename>")
+    def uploaded_file(filename):
+        from flask import send_from_directory
+        return send_from_directory(app.config.get("UPLOAD_FOLDER", "./app/uploads"), filename)
+
     return app
