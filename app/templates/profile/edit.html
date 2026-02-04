@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile - Matcha{% endblock %}
+{% block content %}
+<div class="profile-edit">
+    <h1>Edit Profile</h1>
+
+    <section class="profile-section">
+        <h2>Profile Images</h2>
+        <div class="images-grid">
+            {% for img in images %}
+            <div class="image-card {% if img.is_profile_picture %}is-profile{% endif %}">
+                <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo">
+                <div class="image-actions">
+                    {% if not img.is_profile_picture %}
+                    <form method="post" action="{{ url_for('profile.set_profile_picture', image_id=img.id) }}">
+                        <button type="submit" class="btn btn-small">Set as main</button>
+                    </form>
+                    {% else %}
+                    <span class="badge">Main photo</span>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('profile.delete_image', image_id=img.id) }}">
+                        <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            {% if images|length < 5 %}
+            <div class="image-card upload-card">
+                <form method="post" action="{{ url_for('profile.upload_image') }}" enctype="multipart/form-data">
+                    <label class="upload-label">
+                        <input type="file" name="image" accept="image/*" required>
+                        <span>+ Add photo</span>
+                    </label>
+                    <button type="submit" class="btn btn-small">Upload</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        <p class="hint">You can upload up to 5 images. First image becomes your profile picture.</p>
+    </section>
+
+    <section class="profile-section">
+        <h2>Basic Info</h2>
+        <form method="post" action="{{ url_for('profile.edit') }}" class="profile-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">First name</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last name</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender">
+                        <option value="">Not specified</option>
+                        <option value="male" {% if user.gender == 'male' %}selected{% endif %}>Male</option>
+                        <option value="female" {% if user.gender == 'female' %}selected{% endif %}>Female</option>
+                        <option value="other" {% if user.gender == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sexual_preference">Interested in</label>
+                    <select id="sexual_preference" name="sexual_preference">
+                        <option value="">Not specified</option>
+                        <option value="heterosexual" {% if user.sexual_preference == 'heterosexual' %}selected{% endif %}>Opposite gender</option>
+                        <option value="homosexual" {% if user.sexual_preference == 'homosexual' %}selected{% endif %}>Same gender</option>
+                        <option value="bisexual" {% if user.sexual_preference == 'bisexual' %}selected{% endif %}>Both</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="biography">About me</label>
+                <textarea id="biography" name="biography" rows="4" maxlength="2000">{{ user.biography or '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="tags">Interests (comma-separated)</label>
+                <input type="text" id="tags" name="tags" value="{{ tags|join(', ') }}" placeholder="music, travel, coding">
+                <p class="hint">Add up to 10 tags to describe your interests.</p>
+            </div>
+            <button type="submit" class="btn">Save changes</button>
+        </form>
+    </section>
+
+    <section class="profile-section">
+        <h2>Location</h2>
+        <div class="location-info">
+            {% if user.latitude and user.longitude %}
+            <p>Current location: {{ "%.4f"|format(user.latitude) }}, {{ "%.4f"|format(user.longitude) }}</p>
+            {% else %}
+            <p>Location not set.</p>
+            {% endif %}
+        </div>
+        <div class="location-actions">
+            <button type="button" id="btn-geolocate" class="btn">Detect my location</button>
+        </div>
+        <div class="location-manual">
+            <p>Or enter coordinates manually:</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="manual-lat">Latitude</label>
+                    <input type="number" id="manual-lat" step="0.0001" min="-90" max="90" value="{{ user.latitude or '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="manual-lng">Longitude</label>
+                    <input type="number" id="manual-lng" step="0.0001" min="-180" max="180" value="{{ user.longitude or '' }}">
+                </div>
+            </div>
+            <button type="button" id="btn-save-location" class="btn btn-small">Save location</button>
+        </div>
+        <p id="location-status" class="hint"></p>
+    </section>
+
+    <section class="profile-section">
+        <h2>Stats</h2>
+        <p>Fame rating: <strong>{{ user.fame_rating }}</strong></p>
+        <p><a href="{{ url_for('profile.visitors') }}">View who visited your profile</a></p>
+        <p><a href="{{ url_for('profile.likes') }}">View who liked you</a></p>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var btnGeo = document.getElementById('btn-geolocate');
+    var btnSave = document.getElementById('btn-save-location');
+    var status = document.getElementById('location-status');
+    var latInput = document.getElementById('manual-lat');
+    var lngInput = document.getElementById('manual-lng');
+
+    function updateLocation(lat, lng, manual) {
+        fetch('{{ url_for("profile.update_location") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({latitude: lat, longitude: lng, manual: manual})
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success) {
+                status.textContent = 'Location updated.';
+                latInput.value = lat.toFixed(4);
+                lngInput.value = lng.toFixed(4);
+            } else {
+                status.textContent = 'Failed to update location.';
+            }
+        }).catch(function() {
+            status.textContent = 'Error updating location.';
+        });
+    }
+
+    btnGeo.addEventListener('click', function() {
+        if (!navigator.geolocation) {
+            status.textContent = 'Geolocation not supported.';
+            return;
+        }
+        status.textContent = 'Detecting location...';
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            updateLocation(pos.coords.latitude, pos.coords.longitude, false);
+        }, function(err) {
+            status.textContent = 'Could not detect location. Please enter manually.';
+        });
+    });
+
+    btnSave.addEventListener('click', function() {
+        var lat = parseFloat(latInput.value);
+        var lng = parseFloat(lngInput.value);
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            status.textContent = 'Invalid coordinates.';
+            return;
+        }
+        updateLocation(lat, lng, true);
+    });
+});
+</script>
+{% endblock %}

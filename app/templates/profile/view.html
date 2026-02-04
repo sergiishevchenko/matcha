@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ user.first_name }} {{ user.last_name }} - Matcha{% endblock %}
+{% block content %}
+<div class="profile-view">
+    <div class="profile-header">
+        <div class="profile-photo">
+            {% if user.profile_picture %}
+            <img src="{{ url_for('uploaded_file', filename=user.profile_picture.filename) }}" alt="{{ user.first_name }}">
+            {% else %}
+            <div class="no-photo">No photo</div>
+            {% endif %}
+        </div>
+        <div class="profile-info">
+            <h1>{{ user.first_name }} {{ user.last_name }}</h1>
+            <p class="username">@{{ user.username }}</p>
+            <p class="status">
+                {% if user.is_online %}
+                <span class="online">Online</span>
+                {% elif user.last_seen %}
+                <span class="offline">Last seen {{ user.last_seen.strftime('%Y-%m-%d %H:%M') }}</span>
+                {% endif %}
+            </p>
+            <p class="fame">Fame rating: <strong>{{ user.fame_rating }}</strong></p>
+        </div>
+    </div>
+
+    {% if images %}
+    <section class="profile-section">
+        <h2>Photos</h2>
+        <div class="images-grid view-grid">
+            {% for img in images %}
+            <div class="image-card">
+                <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo">
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="profile-section">
+        <h2>About</h2>
+        <div class="profile-details">
+            {% if user.gender %}
+            <p><strong>Gender:</strong> {{ user.gender|capitalize }}</p>
+            {% endif %}
+            {% if user.sexual_preference %}
+            <p><strong>Interested in:</strong>
+                {% if user.sexual_preference == 'heterosexual' %}Opposite gender
+                {% elif user.sexual_preference == 'homosexual' %}Same gender
+                {% else %}Both{% endif %}
+            </p>
+            {% endif %}
+            {% if user.biography %}
+            <p class="bio">{{ user.biography }}</p>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if tags %}
+    <section class="profile-section">
+        <h2>Interests</h2>
+        <div class="tags-list">
+            {% for tag in tags %}
+            <span class="tag">#{{ tag }}</span>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="profile-section profile-actions">
+        {% if is_match %}
+        <p class="match-banner">You are connected! You can chat now.</p>
+        <a href="{{ url_for('chat.index') }}" class="btn">Send message</a>
+        {% endif %}
+
+        {% if i_liked %}
+        <form method="post" action="{{ url_for('browse.unlike', user_id=user.id) }}" class="inline-form">
+            <button type="submit" class="btn btn-secondary">Unlike</button>
+        </form>
+        {% else %}
+        {% if user.profile_picture %}
+        <form method="post" action="{{ url_for('browse.like', user_id=user.id) }}" class="inline-form">
+            <button type="submit" class="btn">Like</button>
+        </form>
+        {% else %}
+        <p class="hint">This user has no profile picture, you cannot like them.</p>
+        {% endif %}
+        {% endif %}
+
+        <form method="post" action="{{ url_for('browse.block', user_id=user.id) }}" class="inline-form">
+            <button type="submit" class="btn btn-danger">Block</button>
+        </form>
+
+        <form method="post" action="{{ url_for('browse.report', user_id=user.id) }}" class="inline-form">
+            <button type="submit" class="btn btn-secondary">Report fake</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

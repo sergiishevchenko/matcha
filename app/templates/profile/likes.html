@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Who Liked You - Matcha{% endblock %}
+{% block content %}
+<div class="likes-page">
+    <h1>Who liked you</h1>
+    {% if likes %}
+    <ul class="user-list">
+        {% for like, liker in likes %}
+        <li class="user-item">
+            <a href="{{ url_for('profile.view', user_id=liker.id) }}" class="user-link">
+                <div class="user-photo">
+                    {% if liker.profile_picture %}
+                    <img src="{{ url_for('uploaded_file', filename=liker.profile_picture.filename) }}" alt="{{ liker.first_name }}">
+                    {% else %}
+                    <div class="no-photo-small">?</div>
+                    {% endif %}
+                </div>
+                <div class="user-info">
+                    <span class="name">{{ liker.first_name }} {{ liker.last_name }}</span>
+                    <span class="username">@{{ liker.username }}</span>
+                    {% if liker.id in my_likes %}
+                    <span class="match-label">Match!</span>
+                    {% endif %}
+                    <span class="time">{{ like.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No one has liked you yet.</p>
+    {% endif %}
+    <p><a href="{{ url_for('profile.edit') }}">Back to profile</a></p>
+</div>
+{% endblock %}

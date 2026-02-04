@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Profile Visitors - Matcha{% endblock %}
+{% block content %}
+<div class="visitors-page">
+    <h1>Who viewed your profile</h1>
+    {% if views %}
+    <ul class="user-list">
+        {% for pv, viewer in views %}
+        <li class="user-item">
+            <a href="{{ url_for('profile.view', user_id=viewer.id) }}" class="user-link">
+                <div class="user-photo">
+                    {% if viewer.profile_picture %}
+                    <img src="{{ url_for('uploaded_file', filename=viewer.profile_picture.filename) }}" alt="{{ viewer.first_name }}">
+                    {% else %}
+                    <div class="no-photo-small">?</div>
+                    {% endif %}
+                </div>
+                <div class="user-info">
+                    <span class="name">{{ viewer.first_name }} {{ viewer.last_name }}</span>
+                    <span class="username">@{{ viewer.username }}</span>
+                    <span class="time">{{ pv.viewed_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No one has viewed your profile yet.</p>
+    {% endif %}
+    <p><a href="{{ url_for('profile.edit') }}">Back to profile</a></p>
+</div>
+{% endblock %}
