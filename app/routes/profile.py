@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, date
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from app import db
@@ -7,6 +7,7 @@ from app.models import User, UserImage, Tag, UserTag, ProfileView, Like, Notific
 from app.utils.security import sanitize_string
 from app.utils.images import save_image, delete_image_file
 from app.utils.fame import update_user_fame
+from app.utils.matching import calculate_age
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -46,10 +47,17 @@ def edit():
         first_name = sanitize_string(request.form.get("first_name"), 80)
         last_name = sanitize_string(request.form.get("last_name"), 80)
         email = sanitize_string(request.form.get("email"), 120)
+        birth_date_str = request.form.get("birth_date", "")
         gender = request.form.get("gender")
         sexual_preference = request.form.get("sexual_preference")
         biography = sanitize_string(request.form.get("biography"), 2000)
         tags_raw = request.form.get("tags", "")
+        birth_date = None
+        if birth_date_str:
+            try:
+                birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
         if not first_name or not last_name or not email:
             flash("First name, last name and email are required.", "error")
             return render_template("profile/edit.html", user=user, tags=get_user_tags(user.id))
@@ -65,6 +73,7 @@ def edit():
         user.first_name = first_name
         user.last_name = last_name
         user.email = email
+        user.birth_date = birth_date
         user.gender = gender if gender else None
         user.sexual_preference = sexual_preference if sexual_preference else None
         user.biography = biography
@@ -186,6 +195,7 @@ def view(user_id):
     i_liked = Like.query.filter_by(liker_id=current_user.id, liked_id=user.id).first() is not None
     they_liked = Like.query.filter_by(liker_id=user.id, liked_id=current_user.id).first() is not None
     is_match = i_liked and they_liked
+    age = calculate_age(user.birth_date)
     return render_template(
         "profile/view.html",
         user=user,
@@ -193,7 +203,8 @@ def view(user_id):
         tags=tags,
         i_liked=i_liked,
         they_liked=they_liked,
-        is_match=is_match
+        is_match=is_match,
+        age=age
     )
 
 

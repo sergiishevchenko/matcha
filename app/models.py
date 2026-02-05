@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
+    birth_date = db.Column(db.Date, nullable=True)
     gender = db.Column(db.Enum("male", "female", "other", name="gender_enum"), nullable=True)
     sexual_preference = db.Column(
         db.Enum("heterosexual", "homosexual", "bisexual", name="sexual_preference_enum"), nullable=True
