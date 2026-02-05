@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, Like, Block, Report, Notification, UserImage
+from app.models import User, Like, Block, Report, Notification, UserImage, Tag
 from app.utils.fame import update_user_fame
+from app.utils.matching import get_suggestions, search_users, calculate_age
 
 browse_bp = Blueprint("browse", __name__)
 
@@ -11,13 +12,57 @@ browse_bp = Blueprint("browse", __name__)
 @browse_bp.route("/suggestions")
 @login_required
 def suggestions():
-    return render_template("browse/suggestions.html")
+    sort_by = request.args.get("sort", "score")
+    filters = {
+        "age_min": request.args.get("age_min"),
+        "age_max": request.args.get("age_max"),
+        "fame_min": request.args.get("fame_min"),
+        "fame_max": request.args.get("fame_max"),
+        "location_max": request.args.get("location_max"),
+        "tags": request.args.get("tags"),
+    }
+    filters = {k: v for k, v in filters.items() if v}
+    results = get_suggestions(current_user, sort_by=sort_by, filters=filters, limit=50)
+    my_likes = set(l.liked_id for l in Like.query.filter_by(liker_id=current_user.id).all())
+    return render_template(
+        "browse/suggestions.html",
+        results=results,
+        my_likes=my_likes,
+        sort_by=sort_by,
+        filters=filters,
+        calculate_age=calculate_age,
+    )
 
 
 @browse_bp.route("/search")
 @login_required
 def search():
-    return render_template("browse/search.html")
+    sort_by = request.args.get("sort", "score")
+    filters = {
+        "age_min": request.args.get("age_min"),
+        "age_max": request.args.get("age_max"),
+        "fame_min": request.args.get("fame_min"),
+        "fame_max": request.args.get("fame_max"),
+        "location_max": request.args.get("location_max"),
+        "tags": request.args.get("tags"),
+    }
+    filters = {k: v for k, v in filters.items() if v}
+    results = []
+    searched = any(filters.values())
+    if searched:
+        results = search_users(current_user, filters=filters, sort_by=sort_by, limit=50)
+    my_likes = set(l.liked_id for l in Like.query.filter_by(liker_id=current_user.id).all())
+    all_tags = Tag.query.order_by(Tag.name).limit(100).all()
+    return render_template(
+        "browse/search.html",
+        results=results,
+        my_likes=my_likes,
+        sort_by=sort_by,
+        filters=filters,
+        searched=searched,
+        all_tags=all_tags,
+        calculate_age=calculate_age,
+    )
 
 
 @browse_bp.route("/like/<int:user_id>", methods=["POST"])
