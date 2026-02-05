@@ -3,11 +3,11 @@ from datetime import datetime, date
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import User, UserImage, Tag, UserTag, ProfileView, Like, Notification
+from app.models import User, UserImage, Tag, UserTag, ProfileView, Like, Notification, Block
 from app.utils.security import sanitize_string
 from app.utils.images import save_image, delete_image_file
 from app.utils.fame import update_user_fame
-from app.utils.matching import calculate_age
+from app.utils.matching import calculate_age, haversine_distance
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -184,6 +184,14 @@ def view(user_id):
     if not user.email_verified:
         flash("User not found.", "error")
         return redirect(url_for("browse.suggestions"))
+    i_blocked = Block.query.filter_by(blocker_id=current_user.id, blocked_id=user.id).first()
+    if i_blocked:
+        flash("You have blocked this user.", "error")
+        return redirect(url_for("browse.suggestions"))
+    they_blocked = Block.query.filter_by(blocker_id=user.id, blocked_id=current_user.id).first()
+    if they_blocked:
+        flash("User not found.", "error")
+        return redirect(url_for("browse.suggestions"))
     pv = ProfileView(viewer_id=current_user.id, viewed_id=user.id, viewed_at=datetime.utcnow())
     db.session.add(pv)
     notif = Notification(user_id=user.id, type="view", related_user_id=current_user.id)
@@ -196,6 +204,12 @@ def view(user_id):
     they_liked = Like.query.filter_by(liker_id=user.id, liked_id=current_user.id).first() is not None
     is_match = i_liked and they_liked
     age = calculate_age(user.birth_date)
+    distance = None
+    if current_user.latitude and current_user.longitude and user.latitude and user.longitude:
+        distance = haversine_distance(
+            current_user.latitude, current_user.longitude,
+            user.latitude, user.longitude
+        )
     return render_template(
         "profile/view.html",
         user=user,
@@ -204,7 +218,8 @@ def view(user_id):
         i_liked=i_liked,
         they_liked=they_liked,
         is_match=is_match,
-        age=age
+        age=age,
+        distance=distance
     )
 
 

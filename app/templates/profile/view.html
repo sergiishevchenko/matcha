@@ -21,6 +21,9 @@
                 {% endif %}
             </p>
             <p class="fame">Fame rating: <strong>{{ user.fame_rating }}</strong></p>
+            {% if distance is not none %}
+            <p class="distance">{{ "%.1f"|format(distance) }} km away</p>
+            {% endif %}
         </div>
     </div>
 

@@ -83,7 +83,8 @@ def like(user_id):
         flash("You already liked this user.", "error")
         return redirect(url_for("profile.view", user_id=user_id))
     blocked = Block.query.filter_by(blocker_id=user_id, blocked_id=current_user.id).first()
-    if blocked:
+    i_blocked = Block.query.filter_by(blocker_id=current_user.id, blocked_id=user_id).first()
+    if blocked or i_blocked:
         flash("You cannot like this user.", "error")
         return redirect(url_for("browse.suggestions"))
     new_like = Like(liker_id=current_user.id, liked_id=user_id)
