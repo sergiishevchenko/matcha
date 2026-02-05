@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Chat - Matcha{% endblock %}
+{% block content %}
+<div class="chat-page">
+    <div class="chat-sidebar">
+        <h2>Conversations</h2>
+        {% if matches %}
+        <ul class="chat-list">
+            {% for item in matches %}
+            <li class="chat-item">
+                <a href="{{ url_for('chat.conversation', user_id=item.user.id) }}" class="chat-link">
+                    <div class="chat-avatar">
+                        {% if item.user.profile_picture %}
+                        <img src="{{ url_for('uploaded_file', filename=item.user.profile_picture.filename) }}" alt="">
+                        {% else %}
+                        <div class="no-avatar">?</div>
+                        {% endif %}
+                        {% if item.user.is_online %}
+                        <span class="online-dot"></span>
+                        {% endif %}
+                    </div>
+                    <div class="chat-info">
+                        <span class="chat-name">{{ item.user.first_name }}</span>
+                        {% if item.last_message %}
+                        <span class="chat-preview">{{ item.last_message.content[:30] }}{% if item.last_message.content|length > 30 %}...{% endif %}</span>
+                        {% else %}
+                        <span class="chat-preview">Start chatting!</span>
+                        {% endif %}
+                    </div>
+                    {% if item.unread > 0 %}
+                    <span class="unread-badge">{{ item.unread }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-matches">No matches yet. Like someone and get liked back to start chatting!</p>
+        {% endif %}
+    </div>
+    <div class="chat-main">
+        <div class="chat-empty">
+            <p>Select a conversation to start chatting</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
