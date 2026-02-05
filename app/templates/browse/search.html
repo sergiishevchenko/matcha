@@ -1,6 +1,123 @@
 {% extends "base.html" %}
 {% block title %}Search - Matcha{% endblock %}
 {% block content %}
-<h1>Search</h1>
-<p>Search will be available here.</p>
+<div class="browse-page">
+    <h1>Search</h1>
+
+    <div class="browse-controls">
+        <form method="get" action="{{ url_for('browse.search') }}" class="filter-form">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Age</label>
+                    <input type="number" name="age_min" placeholder="Min" value="{{ filters.get('age_min', '') }}" min="18" max="99">
+                    <span>-</span>
+                    <input type="number" name="age_max" placeholder="Max" value="{{ filters.get('age_max', '') }}" min="18" max="99">
+                </div>
+                <div class="filter-group">
+                    <label>Fame</label>
+                    <input type="number" name="fame_min" placeholder="Min" value="{{ filters.get('fame_min', '') }}" min="0">
+                    <span>-</span>
+                    <input type="number" name="fame_max" placeholder="Max" value="{{ filters.get('fame_max', '') }}" min="0">
+                </div>
+                <div class="filter-group">
+                    <label>Distance (km)</label>
+                    <input type="number" name="location_max" placeholder="Max km" value="{{ filters.get('location_max', '') }}" min="1">
+                </div>
+            </div>
+            <div class="filter-row">
+                <div class="filter-group filter-wide">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" name="tags" placeholder="music, travel, coding" value="{{ filters.get('tags', '') }}">
+                </div>
+            </div>
+            {% if all_tags %}
+            <div class="popular-tags">
+                <span>Popular tags:</span>
+                {% for tag in all_tags[:20] %}
+                <button type="button" class="tag-btn" data-tag="{{ tag.name }}">#{{ tag.name }}</button>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Sort by</label>
+                    <select name="sort">
+                        <option value="score" {% if sort_by == 'score' %}selected{% endif %}>Best match</option>
+                        <option value="age" {% if sort_by == 'age' %}selected{% endif %}>Age</option>
+                        <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Distance</option>
+                        <option value="fame" {% if sort_by == 'fame' %}selected{% endif %}>Fame rating</option>
+                        <option value="tags" {% if sort_by == 'tags' %}selected{% endif %}>Common tags</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">Search</button>
+                <a href="{{ url_for('browse.search') }}" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    {% if searched %}
+        {% if results %}
+        <div class="user-grid">
+            {% for item in results %}
+            {% set user = item.user %}
+            <div class="user-card">
+                <a href="{{ url_for('profile.view', user_id=user.id) }}" class="card-link">
+                    <div class="card-photo">
+                        {% if user.profile_picture %}
+                        <img src="{{ url_for('uploaded_file', filename=user.profile_picture.filename) }}" alt="{{ user.first_name }}">
+                        {% else %}
+                        <div class="no-photo">No photo</div>
+                        {% endif %}
+                    </div>
+                    <div class="card-info">
+                        <h3>{{ user.first_name }}, {% if item.age %}{{ item.age }}{% else %}?{% endif %}</h3>
+                        <p class="username">@{{ user.username }}</p>
+                        {% if item.distance is not none %}
+                        <p class="distance">{{ "%.1f"|format(item.distance) }} km away</p>
+                        {% endif %}
+                        <p class="fame">Fame: {{ user.fame_rating }}</p>
+                        {% if item.common_tags > 0 %}
+                        <p class="common-tags">{{ item.common_tags }} common tag{% if item.common_tags > 1 %}s{% endif %}</p>
+                        {% endif %}
+                    </div>
+                </a>
+                <div class="card-actions">
+                    {% if user.id in my_likes %}
+                    <span class="liked-badge">Liked</span>
+                    {% elif user.profile_picture %}
+                    <form method="post" action="{{ url_for('browse.like', user_id=user.id) }}">
+                        <button type="submit" class="btn btn-small">Like</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-results">No users found matching your criteria.</p>
+        {% endif %}
+    {% else %}
+    <p class="search-hint">Use the filters above to search for users.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tagBtns = document.querySelectorAll('.tag-btn');
+    var tagsInput = document.querySelector('input[name="tags"]');
+    tagBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var tag = btn.getAttribute('data-tag');
+            var current = tagsInput.value.trim();
+            var tags = current ? current.split(',').map(function(t) { return t.trim(); }) : [];
+            if (tags.indexOf(tag) === -1) {
+                tags.push(tag);
+                tagsInput.value = tags.join(', ');
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
