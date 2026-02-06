@@ -921,6 +921,118 @@ body {
     text-align: center;
 }
 
+.nav-notifications {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.notif-icon {
+    font-size: 1.1rem;
+}
+
+.notif-badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 8px;
+    min-width: 16px;
+    text-align: center;
+}
+
+.notifications-page {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.notifications-header h1 {
+    margin: 0;
+}
+
+.notifications-list {
+    list-style: none;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.notification-item {
+    border-bottom: 1px solid #eee;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item.unread {
+    background: #f0f7ff;
+}
+
+.notification-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.notification-link:hover {
+    background: #f5f5f5;
+}
+
+.notification-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #eee;
+    flex-shrink: 0;
+}
+
+.notification-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-text {
+    margin: 0 0 0.25rem;
+}
+
+.notification-time {
+    font-size: 0.8rem;
+    color: #95a5a6;
+}
+
+.notification-type {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.no-notifications {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 2rem;
+}
+
 @media (max-width: 600px) {
     .site-header {
         padding: 0.5rem 0.75rem;
