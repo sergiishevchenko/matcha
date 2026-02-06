@@ -116,19 +116,26 @@ matcha/
 │   ├── models.py            # SQLAlchemy models
 │   ├── routes/
 │   │   ├── auth.py          # Register, login, logout, verify, reset password
-│   │   ├── profile.py       # Profile (stub)
-│   │   ├── browse.py        # Suggestions, search (stub)
-│   │   ├── chat.py          # Chat (stub)
-│   │   └── notifications.py # Notifications (stub)
+│   │   ├── profile.py       # Profile editing, images, location, viewing other profiles
+│   │   ├── browse.py        # Suggestions, search, like/unlike, block, report
+│   │   ├── chat.py          # Real-time chat with WebSocket (Flask-SocketIO)
+│   │   └── notifications.py # Real-time notifications with WebSocket
 │   ├── templates/
 │   │   ├── base.html
 │   │   ├── auth/            # register, login, reset_password
-│   │   └── browse/          # suggestions, search
+│   │   ├── browse/          # suggestions, search
+│   │   ├── profile/         # edit, view, visitors, likes
+│   │   ├── chat/            # index (list), conversation
+│   │   └── notifications/   # index (list)
 │   ├── static/css/style.css
 │   ├── utils/
-│   │   ├── security.py      # Password validation, sanitization
-│   │   ├── email.py         # Verification and reset emails
-│   │   └── common_words.txt # For password strength check
+│   │   ├── security.py       # Password validation, sanitization
+│   │   ├── email.py          # Verification and reset emails
+│   │   ├── images.py         # Image upload, resize, validation
+│   │   ├── fame.py           # Fame rating calculation
+│   │   ├── matching.py       # Matching algorithm, search, distance
+│   │   ├── notifications.py  # WebSocket notification emit helper
+│   │   └── common_words.txt  # For password strength check
 │   └── uploads/             # User-uploaded images
 ├── migrations/               # Flask-Migrate (created by flask db init)
 ├── .env.example
