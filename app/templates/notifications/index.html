@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Notifications - Matcha{% endblock %}
+{% block content %}
+<div class="notifications-page">
+    <div class="notifications-header">
+        <h1>Notifications</h1>
+        {% if notifications %}
+        <button id="mark-all-read" class="btn btn-small btn-secondary">Mark all as read</button>
+        {% endif %}
+    </div>
+
+    {% if notifications %}
+    <ul class="notifications-list">
+        {% for item in notifications %}
+        <li class="notification-item {% if not item.notification.is_read %}unread{% endif %}" data-id="{{ item.notification.id }}">
+            <a href="{% if item.user %}{{ url_for('profile.view', user_id=item.user.id) }}{% else %}#{% endif %}" class="notification-link">
+                <div class="notification-avatar">
+                    {% if item.user and item.user.profile_picture %}
+                    <img src="{{ url_for('uploaded_file', filename=item.user.profile_picture.filename) }}" alt="">
+                    {% else %}
+                    <div class="no-avatar">?</div>
+                    {% endif %}
+                </div>
+                <div class="notification-content">
+                    <p class="notification-text">{{ item.text }}</p>
+                    <span class="notification-time">{{ item.notification.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+                <div class="notification-type notification-type-{{ item.notification.type }}">
+                    {% if item.notification.type == 'like' %}❤{% endif %}
+                    {% if item.notification.type == 'view' %}👁{% endif %}
+                    {% if item.notification.type == 'message' %}💬{% endif %}
+                    {% if item.notification.type == 'match' %}🎉{% endif %}
+                    {% if item.notification.type == 'unlike' %}💔{% endif %}
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="no-notifications">No notifications yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var markAllBtn = document.getElementById('mark-all-read');
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', function() {
+            fetch('{{ url_for("notifications.mark_all_read") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            }).then(function() {
+                document.querySelectorAll('.notification-item.unread').forEach(function(el) {
+                    el.classList.remove('unread');
+                });
+                var badge = document.getElementById('notif-count');
+                if (badge) badge.style.display = 'none';
+            });
+        });
+    }
+
+    document.querySelectorAll('.notification-item.unread').forEach(function(item) {
+        item.addEventListener('click', function() {
+            var id = item.getAttribute('data-id');
+            fetch('{{ url_for("notifications.mark_read") }}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({notification_id: id})
+            });
+            item.classList.remove('unread');
+        });
+    });
+});
+</script>
+{% endblock %}
