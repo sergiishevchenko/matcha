@@ -4,6 +4,7 @@ from app import db
 from app.models import User, Like, Block, Report, Notification, UserImage, Tag
 from app.utils.fame import update_user_fame
 from app.utils.matching import get_suggestions, search_users, calculate_age
+from app.utils.notifications import emit_notification
 
 browse_bp = Blueprint("browse", __name__)
 
@@ -95,12 +96,15 @@ def like(user_id):
         db.session.add(notif)
         notif_me = Notification(user_id=current_user.id, type="match", related_user_id=user_id)
         db.session.add(notif_me)
+        db.session.commit()
+        emit_notification(user_id, "match", current_user)
         flash("It's a match! You can now chat.", "success")
     else:
         notif = Notification(user_id=user_id, type="like", related_user_id=current_user.id)
         db.session.add(notif)
+        db.session.commit()
+        emit_notification(user_id, "like", current_user)
         flash("You liked this user.", "success")
-    db.session.commit()
     update_user_fame(user_id)
     update_user_fame(current_user.id)
     return redirect(url_for("profile.view", user_id=user_id))
@@ -117,10 +121,12 @@ def unlike(user_id):
         return redirect(url_for("profile.view", user_id=user_id))
     was_match = Like.query.filter_by(liker_id=user_id, liked_id=current_user.id).first() is not None
     db.session.delete(existing)
+    db.session.commit()
     if was_match:
         notif = Notification(user_id=user_id, type="unlike", related_user_id=current_user.id)
         db.session.add(notif)
-    db.session.commit()
+        db.session.commit()
+        emit_notification(user_id, "unlike", current_user)
     update_user_fame(user_id)
     update_user_fame(current_user.id)
     flash("You unliked this user.", "success")

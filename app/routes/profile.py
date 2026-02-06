@@ -8,6 +8,7 @@ from app.utils.security import sanitize_string
 from app.utils.images import save_image, delete_image_file
 from app.utils.fame import update_user_fame
 from app.utils.matching import calculate_age, haversine_distance
+from app.utils.notifications import emit_notification
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -197,6 +198,7 @@ def view(user_id):
     notif = Notification(user_id=user.id, type="view", related_user_id=current_user.id)
     db.session.add(notif)
     db.session.commit()
+    emit_notification(user.id, "view", current_user)
     update_user_fame(user.id)
     images = UserImage.query.filter_by(user_id=user.id).order_by(UserImage.upload_order).all()
     tags = get_user_tags(user.id)
