@@ -6,6 +6,7 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_socketio import SocketIO
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,6 +17,7 @@ bcrypt = Bcrypt()
 login_manager = LoginManager()
 mail = Mail()
 socketio = SocketIO()
+csrf = CSRFProtect()
 
 
 def create_app(config_class=None):
@@ -33,6 +35,7 @@ def create_app(config_class=None):
     login_manager.login_message = "Please log in to access this page."
     mail.init_app(app)
     socketio.init_app(app, cors_allowed_origins="*")
+    csrf.init_app(app)
 
     upload_folder = app.config.get("UPLOAD_FOLDER", "./app/uploads")
     if not os.path.exists(upload_folder):

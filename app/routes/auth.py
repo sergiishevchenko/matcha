@@ -6,6 +6,7 @@ from app import db, bcrypt
 from app.models import User
 from app.utils.security import is_password_strong, sanitize_string
 from app.utils.email import send_verification_email, send_password_reset_email
+from app.utils.validators import is_valid_email, is_valid_username, is_valid_name
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -24,6 +25,15 @@ def register():
     password_confirm = request.form.get("password_confirm")
     if not all([email, username, first_name, last_name, password]):
         flash("All fields are required.", "error")
+        return render_template("auth/register.html")
+    if not is_valid_email(email):
+        flash("Invalid email format.", "error")
+        return render_template("auth/register.html")
+    if not is_valid_username(username):
+        flash("Username must be 3-30 characters, alphanumeric or underscore only.", "error")
+        return render_template("auth/register.html")
+    if not is_valid_name(first_name) or not is_valid_name(last_name):
+        flash("Names can only contain letters, spaces, hyphens, and apostrophes.", "error")
         return render_template("auth/register.html")
     if password != password_confirm:
         flash("Passwords do not match.", "error")
