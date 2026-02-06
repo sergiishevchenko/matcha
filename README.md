@@ -130,6 +130,7 @@ matcha/
 │   ├── static/css/style.css
 │   ├── utils/
 │   │   ├── security.py       # Password validation, sanitization
+│   │   ├── validators.py     # Email, username, name validation
 │   │   ├── email.py          # Verification and reset emails
 │   │   ├── images.py         # Image upload, resize, validation
 │   │   ├── fame.py           # Fame rating calculation
@@ -145,6 +146,15 @@ matcha/
 ├── PROJECT_PLAN.md           # Full roadmap and DB schema
 └── README.md
 ```
+
+## Security
+
+- **SQL Injection**: SQLAlchemy ORM with parameterized queries
+- **XSS**: Jinja2 auto-escaping, input sanitization
+- **CSRF**: Flask-WTF CSRF protection on all POST forms
+- **Passwords**: bcrypt hashing, strength validation (8+ chars, mixed case, numbers)
+- **File uploads**: Extension + MIME validation, PIL image verification, UUID renaming, size limits (5MB)
+- **Input validation**: Server-side and client-side (HTML5) validation
 
 ## Database schema
 
