@@ -3,30 +3,32 @@
 {% block content %}
 <div class="form-box">
     <h1>Register</h1>
-    <form method="post" action="{{ url_for('auth.register') }}" novalidate>
+    <form method="post" action="{{ url_for('auth.register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required autocomplete="email" value="{{ request.form.email or '' }}">
+            <input type="email" id="email" name="email" required autocomplete="email" maxlength="120" value="{{ request.form.email or '' }}">
         </div>
         <div class="form-group">
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" required autocomplete="username" value="{{ request.form.username or '' }}">
+            <input type="text" id="username" name="username" required autocomplete="username" pattern="[a-zA-Z0-9_]{3,30}" minlength="3" maxlength="30" title="3-30 characters, letters, numbers, underscore" value="{{ request.form.username or '' }}">
         </div>
         <div class="form-group">
             <label for="first_name">First name</label>
-            <input type="text" id="first_name" name="first_name" required autocomplete="given-name" value="{{ request.form.first_name or '' }}">
+            <input type="text" id="first_name" name="first_name" required autocomplete="given-name" maxlength="80" value="{{ request.form.first_name or '' }}">
         </div>
         <div class="form-group">
             <label for="last_name">Last name</label>
-            <input type="text" id="last_name" name="last_name" required autocomplete="family-name" value="{{ request.form.last_name or '' }}">
+            <input type="text" id="last_name" name="last_name" required autocomplete="family-name" maxlength="80" value="{{ request.form.last_name or '' }}">
         </div>
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required autocomplete="new-password">
+            <input type="password" id="password" name="password" required autocomplete="new-password" minlength="8">
+            <small class="hint">At least 8 characters with uppercase, lowercase, and number</small>
         </div>
         <div class="form-group">
             <label for="password_confirm">Confirm password</label>
-            <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password">
+            <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password" minlength="8">
         </div>
         <button type="submit" class="btn btn-block">Register</button>
     </form>

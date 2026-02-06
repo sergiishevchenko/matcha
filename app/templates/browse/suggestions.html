@@ -75,6 +75,7 @@
                 <span class="liked-badge">Liked</span>
                 {% elif user.profile_picture %}
                 <form method="post" action="{{ url_for('browse.like', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-small">Like</button>
                 </form>
                 {% endif %}

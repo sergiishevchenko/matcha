@@ -13,12 +13,14 @@
                 <div class="image-actions">
                     {% if not img.is_profile_picture %}
                     <form method="post" action="{{ url_for('profile.set_profile_picture', image_id=img.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-small">Set as main</button>
                     </form>
                     {% else %}
                     <span class="badge">Main photo</span>
                     {% endif %}
                     <form method="post" action="{{ url_for('profile.delete_image', image_id=img.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-small btn-danger">Delete</button>
                     </form>
                 </div>
@@ -27,6 +29,7 @@
             {% if images|length < 5 %}
             <div class="image-card upload-card">
                 <form method="post" action="{{ url_for('profile.upload_image') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <label class="upload-label">
                         <input type="file" name="image" accept="image/*" required>
                         <span>+ Add photo</span>
@@ -42,6 +45,7 @@
     <section class="profile-section">
         <h2>Basic Info</h2>
         <form method="post" action="{{ url_for('profile.edit') }}" class="profile-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-row">
                 <div class="form-group">
                     <label for="first_name">First name</label>

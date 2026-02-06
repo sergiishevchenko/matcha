@@ -50,7 +50,10 @@ document.addEventListener('DOMContentLoaded', function() {
         markAllBtn.addEventListener('click', function() {
             fetch('{{ url_for("notifications.mark_all_read") }}', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'}
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                }
             }).then(function() {
                 document.querySelectorAll('.notification-item.unread').forEach(function(el) {
                     el.classList.remove('unread');
@@ -66,7 +69,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var id = item.getAttribute('data-id');
             fetch('{{ url_for("notifications.mark_read") }}', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
                 body: JSON.stringify({notification_id: id})
             });
             item.classList.remove('unread');

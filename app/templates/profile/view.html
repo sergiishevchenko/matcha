@@ -78,11 +78,13 @@
 
         {% if i_liked %}
         <form method="post" action="{{ url_for('browse.unlike', user_id=user.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-secondary">Unlike</button>
         </form>
         {% else %}
         {% if user.profile_picture %}
         <form method="post" action="{{ url_for('browse.like', user_id=user.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn">Like</button>
         </form>
         {% else %}
@@ -91,10 +93,12 @@
         {% endif %}
 
         <form method="post" action="{{ url_for('browse.block', user_id=user.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-danger">Block</button>
         </form>
 
         <form method="post" action="{{ url_for('browse.report', user_id=user.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-secondary">Report fake</button>
         </form>
     </section>
