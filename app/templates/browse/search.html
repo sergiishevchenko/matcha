@@ -94,6 +94,7 @@
             </div>
             {% endfor %}
         </div>
+        {% include "components/pagination.html" %}
         {% else %}
         <p class="no-results">No users found matching your criteria.</p>
         {% endif %}
