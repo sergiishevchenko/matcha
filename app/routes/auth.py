@@ -7,6 +7,7 @@ from app.models import User
 from app.utils.security import is_password_strong, sanitize_string
 from app.utils.email import send_verification_email, send_password_reset_email
 from app.utils.validators import is_valid_email, is_valid_username, is_valid_name
+from app.utils.logger import log_auth, log_action
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -60,6 +61,7 @@ def register():
     )
     db.session.add(user)
     db.session.commit()
+    log_auth("register", username, success=True)
     try:
         send_verification_email(user, verification_token)
     except Exception:
@@ -94,12 +96,14 @@ def login():
         return render_template("auth/login.html")
     user = User.query.filter_by(username=username).first()
     if not user or not bcrypt.check_password_hash(user.password_hash, password):
+        log_auth("login", username, success=False)
         flash("Invalid username or password.", "error")
         return render_template("auth/login.html")
     if not user.email_verified:
         flash("Please verify your email before logging in.", "error")
         return render_template("auth/login.html")
     login_user(user)
+    log_auth("login", username, success=True)
     user.is_online = True
     user.last_seen = datetime.utcnow()
     db.session.commit()

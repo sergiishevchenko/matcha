@@ -248,3 +248,70 @@ def likes():
         l.liked_id for l in Like.query.filter_by(liker_id=current_user.id).all()
     )
     return render_template("profile/likes.html", likes=likes_list, my_likes=my_likes)
+
+
+@profile_bp.route("/reorder-images", methods=["POST"])
+@login_required
+def reorder_images():
+    data = request.get_json() or {}
+    order = data.get("order", [])
+    try:
+        order = [int(x) for x in order]
+    except (ValueError, TypeError):
+        return jsonify({"success": False}), 400
+    images = UserImage.query.filter_by(user_id=current_user.id).all()
+    id_to_img = {img.id: img for img in images}
+    for idx, img_id in enumerate(order):
+        if img_id in id_to_img:
+            id_to_img[img_id].upload_order = idx
+            id_to_img[img_id].is_profile_picture = (idx == 0)
+            if idx == 0:
+                current_user.profile_picture_id = img_id
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@profile_bp.route("/edit-image", methods=["POST"])
+@login_required
+def edit_image():
+    from PIL import Image, ImageEnhance
+    import os
+    data = request.get_json() or {}
+    image_id = data.get("image_id")
+    rotation = data.get("rotation", 0)
+    flip_h = data.get("flip_h", False)
+    flip_v = data.get("flip_v", False)
+    brightness = data.get("brightness", 100)
+    contrast = data.get("contrast", 100)
+    try:
+        image_id = int(image_id)
+        rotation = int(rotation) % 360
+        brightness = int(brightness)
+        contrast = int(contrast)
+    except (ValueError, TypeError):
+        return jsonify({"success": False}), 400
+    img = UserImage.query.filter_by(id=image_id, user_id=current_user.id).first()
+    if not img:
+        return jsonify({"success": False, "error": "Image not found"}), 404
+    upload_folder = current_app.config.get("UPLOAD_FOLDER", "./app/uploads")
+    filepath = os.path.join(upload_folder, img.filename)
+    if not os.path.exists(filepath):
+        return jsonify({"success": False, "error": "File not found"}), 404
+    try:
+        pil_img = Image.open(filepath)
+        if rotation:
+            pil_img = pil_img.rotate(-rotation, expand=True)
+        if flip_h:
+            pil_img = pil_img.transpose(Image.FLIP_LEFT_RIGHT)
+        if flip_v:
+            pil_img = pil_img.transpose(Image.FLIP_TOP_BOTTOM)
+        if brightness != 100:
+            enhancer = ImageEnhance.Brightness(pil_img)
+            pil_img = enhancer.enhance(brightness / 100.0)
+        if contrast != 100:
+            enhancer = ImageEnhance.Contrast(pil_img)
+            pil_img = enhancer.enhance(contrast / 100.0)
+        pil_img.save(filepath)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
