@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app import db
+from app import db, cache
 from app.models import User, Like, Block, Report, Notification, UserImage, Tag
 from app.utils.fame import update_user_fame
 from app.utils.matching import get_suggestions, search_users, calculate_age
@@ -9,10 +9,19 @@ from app.utils.notifications import emit_notification
 browse_bp = Blueprint("browse", __name__)
 
 
+@cache.cached(timeout=600, key_prefix="all_tags")
+def get_all_tags():
+    return Tag.query.order_by(Tag.name).limit(100).all()
+
+
+PER_PAGE = 20
+
+
 @browse_bp.route("/")
 @browse_bp.route("/suggestions")
 @login_required
 def suggestions():
+    page = request.args.get("page", 1, type=int)
     sort_by = request.args.get("sort", "score")
     filters = {
         "age_min": request.args.get("age_min"),
@@ -23,7 +32,12 @@ def suggestions():
         "tags": request.args.get("tags"),
     }
     filters = {k: v for k, v in filters.items() if v}
-    results = get_suggestions(current_user, sort_by=sort_by, filters=filters, limit=50)
+    all_results = get_suggestions(current_user, sort_by=sort_by, filters=filters, limit=500)
+    total = len(all_results)
+    total_pages = (total + PER_PAGE - 1) // PER_PAGE
+    start = (page - 1) * PER_PAGE
+    end = start + PER_PAGE
+    results = all_results[start:end]
     my_likes = set(l.liked_id for l in Like.query.filter_by(liker_id=current_user.id).all())
     return render_template(
         "browse/suggestions.html",
@@ -32,12 +46,15 @@ def suggestions():
         sort_by=sort_by,
         filters=filters,
         calculate_age=calculate_age,
+        page=page,
+        total_pages=total_pages,
     )
 
 
 @browse_bp.route("/search")
 @login_required
 def search():
+    page = request.args.get("page", 1, type=int)
     sort_by = request.args.get("sort", "score")
     filters = {
         "age_min": request.args.get("age_min"),
@@ -49,11 +66,17 @@ def search():
     }
     filters = {k: v for k, v in filters.items() if v}
     results = []
+    total_pages = 1
     searched = any(filters.values())
     if searched:
-        results = search_users(current_user, filters=filters, sort_by=sort_by, limit=50)
+        all_results = search_users(current_user, filters=filters, sort_by=sort_by, limit=500)
+        total = len(all_results)
+        total_pages = (total + PER_PAGE - 1) // PER_PAGE
+        start = (page - 1) * PER_PAGE
+        end = start + PER_PAGE
+        results = all_results[start:end]
     my_likes = set(l.liked_id for l in Like.query.filter_by(liker_id=current_user.id).all())
-    all_tags = Tag.query.order_by(Tag.name).limit(100).all()
+    all_tags = get_all_tags()
     return render_template(
         "browse/search.html",
         results=results,
@@ -63,6 +86,8 @@ def search():
         searched=searched,
         all_tags=all_tags,
         calculate_age=calculate_age,
+        page=page,
+        total_pages=total_pages,
     )
 
 

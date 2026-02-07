@@ -7,6 +7,7 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from flask_socketio import SocketIO
 from flask_wtf.csrf import CSRFProtect
+from flask_caching import Cache
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,6 +19,7 @@ login_manager = LoginManager()
 mail = Mail()
 socketio = SocketIO()
 csrf = CSRFProtect()
+cache = Cache()
 
 
 def create_app(config_class=None):
@@ -36,6 +38,14 @@ def create_app(config_class=None):
     mail.init_app(app)
     socketio.init_app(app, cors_allowed_origins="*")
     csrf.init_app(app)
+    cache.init_app(app, config={
+        "CACHE_TYPE": app.config.get("CACHE_TYPE", "SimpleCache"),
+        "CACHE_DEFAULT_TIMEOUT": app.config.get("CACHE_DEFAULT_TIMEOUT", 300),
+    })
+
+    from app.utils.logger import setup_logger
+    if not app.config.get("TESTING"):
+        setup_logger(app)
 
     upload_folder = app.config.get("UPLOAD_FOLDER", "./app/uploads")
     if not os.path.exists(upload_folder):
@@ -46,12 +56,23 @@ def create_app(config_class=None):
     from app.routes.browse import browse_bp
     from app.routes.chat import chat_bp
     from app.routes.notifications import notifications_bp
+    from app.routes.map import map_bp
+    from app.routes.oauth import oauth_bp, init_oauth
+    from app.routes.events import events_bp
+    from app.routes.videochat import videochat_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(profile_bp, url_prefix="/profile")
     app.register_blueprint(browse_bp, url_prefix="/browse")
     app.register_blueprint(chat_bp, url_prefix="/chat")
     app.register_blueprint(notifications_bp, url_prefix="/notifications")
+    app.register_blueprint(map_bp, url_prefix="/map")
+    app.register_blueprint(oauth_bp, url_prefix="/oauth")
+    app.register_blueprint(events_bp, url_prefix="/events")
+    app.register_blueprint(videochat_bp, url_prefix="/videochat")
+
+    if app.config.get("GOOGLE_CLIENT_ID"):
+        init_oauth(app)
 
     @app.route("/")
     def index():
