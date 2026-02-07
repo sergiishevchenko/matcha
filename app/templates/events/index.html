@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}My Events - Matcha{% endblock %}
+{% block content %}
+<div class="events-page">
+    <h1>My Events</h1>
+
+    <section class="events-section">
+        <h2>Events I Created</h2>
+        {% if created %}
+        <div class="events-list">
+            {% for event in created %}
+            <a href="{{ url_for('events.view', event_id=event.id) }}" class="event-card status-{{ event.status }}">
+                <div class="event-info">
+                    <h3>{{ event.title }}</h3>
+                    <p class="event-with">With: {{ event.invitee.first_name }}</p>
+                    <p class="event-date">{{ event.event_date.strftime('%b %d, %Y at %H:%M') }}</p>
+                    {% if event.location %}<p class="event-location">{{ event.location }}</p>{% endif %}
+                </div>
+                <span class="event-status">{{ event.status }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-message">No events created yet.</p>
+        {% endif %}
+    </section>
+
+    <section class="events-section">
+        <h2>Invitations</h2>
+        {% if invited %}
+        <div class="events-list">
+            {% for event in invited %}
+            <a href="{{ url_for('events.view', event_id=event.id) }}" class="event-card status-{{ event.status }}">
+                <div class="event-info">
+                    <h3>{{ event.title }}</h3>
+                    <p class="event-with">From: {{ event.creator.first_name }}</p>
+                    <p class="event-date">{{ event.event_date.strftime('%b %d, %Y at %H:%M') }}</p>
+                    {% if event.location %}<p class="event-location">{{ event.location }}</p>{% endif %}
+                </div>
+                <span class="event-status">{{ event.status }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-message">No invitations yet.</p>
+        {% endif %}
+    </section>
+
+    <div class="events-actions">
+        <a href="#" class="btn" id="new-event-btn">Create New Event</a>
+    </div>
+
+    <div id="match-selector" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select a Match</h3>
+                <button type="button" class="modal-close" id="close-selector">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="matches-list" class="matches-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var btn = document.getElementById('new-event-btn');
+    var modal = document.getElementById('match-selector');
+    var closeBtn = document.getElementById('close-selector');
+    var list = document.getElementById('matches-list');
+
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        fetch('{{ url_for("events.api_matches") }}')
+            .then(function(r) { return r.json(); })
+            .then(function(matches) {
+                if (matches.length === 0) {
+                    list.innerHTML = '<p>No matches yet. Match with someone to create events!</p>';
+                } else {
+                    list.innerHTML = matches.map(function(m) {
+                        return '<a href="/events/create/' + m.id + '" class="match-item">' + m.first_name + ' (@' + m.username + ')</a>';
+                    }).join('');
+                }
+                modal.style.display = 'flex';
+            });
+    });
+
+    closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.style.display = 'none';
+    });
+})();
+</script>
+{% endblock %}

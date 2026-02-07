@@ -6,10 +6,10 @@
 
     <section class="profile-section">
         <h2>Profile Images</h2>
-        <div class="images-grid">
+        <div class="images-grid" id="images-sortable">
             {% for img in images %}
-            <div class="image-card {% if img.is_profile_picture %}is-profile{% endif %}">
-                <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo">
+            <div class="image-card {% if img.is_profile_picture %}is-profile{% endif %}" data-id="{{ img.id }}">
+                <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo" class="sortable-handle">
                 <div class="image-actions">
                     {% if not img.is_profile_picture %}
                     <form method="post" action="{{ url_for('profile.set_profile_picture', image_id=img.id) }}">
@@ -19,6 +19,7 @@
                     {% else %}
                     <span class="badge">Main photo</span>
                     {% endif %}
+                    <button type="button" class="btn btn-small btn-secondary edit-image-btn" data-id="{{ img.id }}" data-src="{{ url_for('uploaded_file', filename=img.filename) }}">Edit</button>
                     <form method="post" action="{{ url_for('profile.delete_image', image_id=img.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-small btn-danger">Delete</button>
@@ -26,21 +27,43 @@
                 </div>
             </div>
             {% endfor %}
-            {% if images|length < 5 %}
-            <div class="image-card upload-card">
-                <form method="post" action="{{ url_for('profile.upload_image') }}" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <label class="upload-label">
-                        <input type="file" name="image" accept="image/*" required>
-                        <span>+ Add photo</span>
-                    </label>
-                    <button type="submit" class="btn btn-small">Upload</button>
-                </form>
-            </div>
-            {% endif %}
         </div>
-        <p class="hint">You can upload up to 5 images. First image becomes your profile picture.</p>
+        {% if images|length < 5 %}
+        <div class="dropzone-area" id="dropzone">
+            <p>Drag & drop images here or click to upload</p>
+            <input type="file" id="file-input" accept="image/*" multiple style="display:none;">
+        </div>
+        {% endif %}
+        <p class="hint">Drag images to reorder. First image is your profile picture. Max 5 images.</p>
     </section>
+
+    <div id="image-editor-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Image</h3>
+                <button type="button" class="modal-close" id="close-editor">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="editor-preview">
+                    <img id="editor-image" src="" alt="">
+                </div>
+                <div class="editor-controls">
+                    <button type="button" class="btn btn-small" id="rotate-left">Rotate Left</button>
+                    <button type="button" class="btn btn-small" id="rotate-right">Rotate Right</button>
+                    <button type="button" class="btn btn-small" id="flip-h">Flip H</button>
+                    <button type="button" class="btn btn-small" id="flip-v">Flip V</button>
+                </div>
+                <div class="editor-filters">
+                    <label>Brightness: <input type="range" id="brightness" min="50" max="150" value="100"></label>
+                    <label>Contrast: <input type="range" id="contrast" min="50" max="150" value="100"></label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" id="save-edit">Save Changes</button>
+                <button type="button" class="btn btn-secondary" id="cancel-edit">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <section class="profile-section">
         <h2>Basic Info</h2>
@@ -184,6 +207,212 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         updateLocation(lat, lng, true);
     });
+
+    var dropzone = document.getElementById('dropzone');
+    var fileInput = document.getElementById('file-input');
+    var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    if (dropzone) {
+        dropzone.addEventListener('click', function() { fileInput.click(); });
+        dropzone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', function() {
+            dropzone.classList.remove('dragover');
+        });
+        dropzone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', function() {
+            handleFiles(fileInput.files);
+        });
+    }
+
+    function handleFiles(files) {
+        Array.from(files).forEach(function(file) {
+            if (!file.type.startsWith('image/')) return;
+            var formData = new FormData();
+            formData.append('image', file);
+            fetch('{{ url_for("profile.upload_image") }}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            }).then(function() { location.reload(); });
+        });
+    }
+
+    var sortable = document.getElementById('images-sortable');
+    if (sortable && sortable.children.length > 1) {
+        var dragged = null;
+        Array.from(sortable.children).forEach(function(card) {
+            card.draggable = true;
+            card.addEventListener('dragstart', function(e) {
+                dragged = card;
+                card.classList.add('dragging');
+            });
+            card.addEventListener('dragend', function() {
+                card.classList.remove('dragging');
+                saveOrder();
+            });
+            card.addEventListener('dragover', function(e) { e.preventDefault(); });
+            card.addEventListener('drop', function(e) {
+                e.preventDefault();
+                if (dragged !== card) {
+                    var allCards = Array.from(sortable.children);
+                    var draggedIdx = allCards.indexOf(dragged);
+                    var targetIdx = allCards.indexOf(card);
+                    if (draggedIdx < targetIdx) {
+                        sortable.insertBefore(dragged, card.nextSibling);
+                    } else {
+                        sortable.insertBefore(dragged, card);
+                    }
+                }
+            });
+        });
+    }
+
+    function saveOrder() {
+        var ids = Array.from(sortable.children).map(function(c) { return c.dataset.id; });
+        fetch('{{ url_for("profile.reorder_images") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ order: ids })
+        });
+    }
+
+    var modal = document.getElementById('image-editor-modal');
+    var editorImg = document.getElementById('editor-image');
+    var currentEditId = null;
+    var rotation = 0, flipH = false, flipV = false;
+
+    document.querySelectorAll('.edit-image-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            currentEditId = btn.dataset.id;
+            editorImg.src = btn.dataset.src;
+            rotation = 0; flipH = false; flipV = false;
+            document.getElementById('brightness').value = 100;
+            document.getElementById('contrast').value = 100;
+            applyFilters();
+            modal.style.display = 'flex';
+        });
+    });
+
+    document.getElementById('close-editor').addEventListener('click', function() { modal.style.display = 'none'; });
+    document.getElementById('cancel-edit').addEventListener('click', function() { modal.style.display = 'none'; });
+
+    document.getElementById('rotate-left').addEventListener('click', function() { rotation -= 90; applyFilters(); });
+    document.getElementById('rotate-right').addEventListener('click', function() { rotation += 90; applyFilters(); });
+    document.getElementById('flip-h').addEventListener('click', function() { flipH = !flipH; applyFilters(); });
+    document.getElementById('flip-v').addEventListener('click', function() { flipV = !flipV; applyFilters(); });
+    document.getElementById('brightness').addEventListener('input', applyFilters);
+    document.getElementById('contrast').addEventListener('input', applyFilters);
+
+    function applyFilters() {
+        var b = document.getElementById('brightness').value;
+        var c = document.getElementById('contrast').value;
+        var transform = 'rotate(' + rotation + 'deg)';
+        if (flipH) transform += ' scaleX(-1)';
+        if (flipV) transform += ' scaleY(-1)';
+        editorImg.style.transform = transform;
+        editorImg.style.filter = 'brightness(' + (b/100) + ') contrast(' + (c/100) + ')';
+    }
+
+    document.getElementById('save-edit').addEventListener('click', function() {
+        var b = document.getElementById('brightness').value;
+        var c = document.getElementById('contrast').value;
+        fetch('{{ url_for("profile.edit_image") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                image_id: currentEditId,
+                rotation: rotation,
+                flip_h: flipH,
+                flip_v: flipV,
+                brightness: b,
+                contrast: c
+            })
+        }).then(function() { location.reload(); });
+    });
 });
 </script>
+<style>
+.dropzone-area {
+    border: 2px dashed #bdc3c7;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-top: 1rem;
+}
+.dropzone-area:hover, .dropzone-area.dragover {
+    border-color: #3498db;
+    background: #f0f7ff;
+}
+.image-card.dragging { opacity: 0.5; }
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: #fff;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: auto;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+.modal-header h3 { margin: 0; }
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+.modal-body { padding: 1rem; }
+.editor-preview {
+    text-align: center;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+.editor-preview img {
+    max-width: 100%;
+    max-height: 300px;
+    transition: transform 0.2s, filter 0.2s;
+}
+.editor-controls, .editor-filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.editor-filters label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+.modal-footer {
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+</style>
 {% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} - Matcha{% endblock %}
+{% block content %}
+<div class="event-view">
+    <div class="event-header">
+        <h1>{{ event.title }}</h1>
+        <span class="event-status-badge status-{{ event.status }}">{{ event.status }}</span>
+    </div>
+
+    <div class="event-details">
+        <div class="detail-row">
+            <span class="detail-label">{{ 'With' if is_creator else 'From' }}:</span>
+            <a href="{{ url_for('profile.view', user_id=other_user.id) }}">{{ other_user.first_name }} {{ other_user.last_name }}</a>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Date:</span>
+            <span>{{ event.event_date.strftime('%A, %B %d, %Y') }}</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Time:</span>
+            <span>{{ event.event_date.strftime('%H:%M') }}</span>
+        </div>
+
+        {% if event.location %}
+        <div class="detail-row">
+            <span class="detail-label">Location:</span>
+            <span>{{ event.location }}</span>
+        </div>
+        {% endif %}
+
+        {% if event.description %}
+        <div class="detail-row description">
+            <span class="detail-label">Description:</span>
+            <p>{{ event.description }}</p>
+        </div>
+        {% endif %}
+
+        <div class="detail-row">
+            <span class="detail-label">Created:</span>
+            <span>{{ event.created_at.strftime('%b %d, %Y at %H:%M') }}</span>
+        </div>
+    </div>
+
+    <div class="event-actions">
+        {% if not is_creator and event.status == 'pending' %}
+        <form method="post" action="{{ url_for('events.respond', event_id=event.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="accept">
+            <button type="submit" class="btn btn-success">Accept</button>
+        </form>
+        <form method="post" action="{{ url_for('events.respond', event_id=event.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="decline">
+            <button type="submit" class="btn btn-secondary">Decline</button>
+        </form>
+        {% endif %}
+
+        {% if is_creator and event.status not in ['cancelled', 'declined'] %}
+        <form method="post" action="{{ url_for('events.cancel', event_id=event.id) }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">Cancel Event</button>
+        </form>
+        {% endif %}
+
+        <a href="{{ url_for('events.index') }}" class="btn btn-secondary">Back to Events</a>
+        <a href="{{ url_for('chat.conversation', user_id=other_user.id) }}" class="btn">Chat with {{ other_user.first_name }}</a>
+    </div>
+</div>
+{% endblock %}

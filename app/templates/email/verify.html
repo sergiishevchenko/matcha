@@ -1,0 +1,20 @@
+{% extends "email/base.html" %}
+{% block title %}Verify Your Email - Matcha{% endblock %}
+{% block content %}
+<h2>Welcome to Matcha!</h2>
+<p>Hi {{ user.first_name }},</p>
+<p>Thank you for registering on Matcha. To complete your registration and start meeting new people, please verify your email address by clicking the button below:</p>
+
+<div style="text-align: center;">
+    <a href="{{ verify_url }}" class="btn">Verify Email</a>
+</div>
+
+<div class="note">
+    <strong>Note:</strong> This link will expire in 24 hours. If you didn't create an account on Matcha, you can safely ignore this email.
+</div>
+
+<p>If the button doesn't work, copy and paste this link into your browser:</p>
+<p style="word-break: break-all; font-size: 13px; color: #7f8c8d;">{{ verify_url }}</p>
+
+<p>Best regards,<br>The Matcha Team</p>
+{% endblock %}

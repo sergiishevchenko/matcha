@@ -46,6 +46,10 @@
                     </span>
                 </div>
             </a>
+            <div class="chat-header-actions">
+                <a href="{{ url_for('videochat.call', user_id=other.id) }}" class="btn btn-small" title="Video Call">📹 Call</a>
+                <a href="{{ url_for('events.create', user_id=other.id) }}" class="btn btn-small btn-secondary" title="Schedule Event">📅</a>
+            </div>
         </div>
         <div class="chat-messages" id="chat-messages">
             {% for msg in messages %}
@@ -55,7 +59,9 @@
             </div>
             {% endfor %}
         </div>
-        <form class="chat-input" id="chat-form">
+        <form class="chat-input" id="chat-form"
+              data-receiver-id="{{ other.id }}"
+              data-send-url="{{ url_for('chat.send_message') }}">
             <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" maxlength="2000">
             <button type="submit" class="btn">Send</button>
         </form>
@@ -65,66 +71,5 @@
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
-<script>
-(function() {
-    var socket = io();
-    var messagesDiv = document.getElementById('chat-messages');
-    var form = document.getElementById('chat-form');
-    var input = document.getElementById('message-input');
-    var receiverId = {{ other.id }};
-
-    function scrollToBottom() {
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-    scrollToBottom();
-
-    socket.on('connect', function() {
-        socket.emit('mark_read', {sender_id: receiverId});
-    });
-
-    socket.on('new_message', function(data) {
-        if (data.sender_id === receiverId) {
-            var div = document.createElement('div');
-            div.className = 'message received';
-            div.innerHTML = '<div class="message-content">' + escapeHtml(data.content) + '</div>' +
-                            '<div class="message-time">' + data.created_at.split(' ')[1] + '</div>';
-            messagesDiv.appendChild(div);
-            scrollToBottom();
-            socket.emit('mark_read', {sender_id: receiverId});
-        }
-    });
-
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var content = input.value.trim();
-        if (!content) return;
-        fetch('{{ url_for("chat.send_message") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({receiver_id: receiverId, content: content})
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.success) {
-                var div = document.createElement('div');
-                div.className = 'message sent';
-                div.innerHTML = '<div class="message-content">' + escapeHtml(data.message.content) + '</div>' +
-                                '<div class="message-time">' + data.message.created_at.split(' ')[1] + '</div>';
-                messagesDiv.appendChild(div);
-                scrollToBottom();
-                input.value = '';
-            }
-        });
-    });
-
-    function escapeHtml(text) {
-        var div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-})();
-</script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 {% endblock %}
