@@ -43,7 +43,7 @@ class User(UserMixin, db.Model):
 class UserImage(db.Model):
     __tablename__ = "user_images"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     filename = db.Column(db.String(255), nullable=False)
     is_profile_picture = db.Column(db.Boolean, default=False)
     upload_order = db.Column(db.Integer, default=0)
@@ -63,6 +63,7 @@ class Tag(db.Model):
 
 class UserTag(db.Model):
     __tablename__ = "user_tags"
+    __table_args__ = (db.Index("ix_user_tags_tag_id", "tag_id"),)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
     tag_id = db.Column(db.Integer, db.ForeignKey("tags.id"), primary_key=True)
 
@@ -70,8 +71,8 @@ class UserTag(db.Model):
 class Like(db.Model):
     __tablename__ = "likes"
     id = db.Column(db.Integer, primary_key=True)
-    liker_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    liked_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    liker_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    liked_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint("liker_id", "liked_id", name="uq_liker_liked"),)
 
@@ -88,8 +89,8 @@ class ProfileView(db.Model):
 class Block(db.Model):
     __tablename__ = "blocks"
     id = db.Column(db.Integer, primary_key=True)
-    blocker_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    blocked_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    blocker_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    blocked_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint("blocker_id", "blocked_id", name="uq_blocker_blocked"),)
 
@@ -120,9 +121,31 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     type = db.Column(
-        db.Enum("like", "view", "message", "match", "unlike", name="notification_type_enum"), nullable=False
+        db.Enum("like", "view", "message", "match", "unlike", "event", name="notification_type_enum"), nullable=False
     )
     related_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     message_id = db.Column(db.Integer, db.ForeignKey("messages.id"), nullable=True)
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Event(db.Model):
+    __tablename__ = "events"
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    invitee_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    event_date = db.Column(db.DateTime, nullable=False)
+    location = db.Column(db.String(300), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    status = db.Column(
+        db.Enum("pending", "accepted", "declined", "cancelled", name="event_status_enum"),
+        default="pending"
+    )
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = db.relationship("User", foreign_keys=[creator_id], backref="created_events")
+    invitee = db.relationship("User", foreign_keys=[invitee_id], backref="invited_events")
