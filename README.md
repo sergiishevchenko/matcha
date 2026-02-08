@@ -14,6 +14,8 @@ A dating website built with Flask and PostgreSQL. Users register, verify email, 
 | Auth | Flask-Login, Flask-Bcrypt |
 | File upload | Werkzeug (images) |
 | Location | JavaScript Geolocation API + fallback |
+| Maps | Leaflet.js (interactive user map) |
+| OAuth | Authlib (Google OAuth) |
 
 ## Prerequisites
 
@@ -89,6 +91,8 @@ mkdir -p app/uploads
 | `MAIL_PASSWORD` | SMTP password / app password | Your password |
 | `UPLOAD_FOLDER` | Path for uploads | `./app/uploads` |
 | `MAX_CONTENT_LENGTH` | Max upload size (bytes) | `5242880` (5MB) |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID (optional) | From Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret (optional) | From Google Cloud Console |
 
 
 ## Run the app
@@ -119,7 +123,11 @@ matcha/
 │   │   ├── profile.py       # Profile editing, images, location, viewing other profiles
 │   │   ├── browse.py        # Suggestions, search, like/unlike, block, report
 │   │   ├── chat.py          # Real-time chat with WebSocket (Flask-SocketIO)
-│   │   └── notifications.py # Real-time notifications with WebSocket
+│   │   ├── notifications.py # Real-time notifications with WebSocket
+│   │   ├── map.py           # Interactive user map (Leaflet.js)
+│   │   ├── oauth.py         # Google OAuth authentication
+│   │   ├── events.py        # Date/event scheduling for matches
+│   │   └── videochat.py     # WebRTC video/audio calls
 │   ├── templates/
 │   │   ├── base.html
 │   │   ├── auth/            # register, login, reset_password
@@ -138,6 +146,14 @@ matcha/
 │   │   ├── notifications.py  # WebSocket notification emit helper
 │   │   └── common_words.txt  # For password strength check
 │   └── uploads/             # User-uploaded images
+├── scripts/
+│   └── seed_data.py         # Generate 500+ test profiles
+├── tests/
+│   ├── conftest.py          # Pytest fixtures
+│   ├── test_auth.py         # Auth tests
+│   ├── test_browse.py       # Browse/like/block tests
+│   ├── test_models.py       # Model tests
+│   └── test_utils.py        # Utility function tests
 ├── migrations/               # Flask-Migrate (created by flask db init)
 ├── .env.example
 ├── .gitignore
@@ -146,6 +162,53 @@ matcha/
 ├── PROJECT_PLAN.md           # Full roadmap and DB schema
 └── README.md
 ```
+
+## Seed data
+
+Generate 500+ test profiles with random data:
+
+```bash
+python scripts/seed_data.py
+```
+
+This creates users with random names, locations (Swiss cities), tags, likes, and profile views. All test users have password `Test1234!`.
+
+## Testing
+
+Run tests with pytest:
+
+```bash
+pytest
+```
+
+Run with verbose output:
+
+```bash
+pytest -v
+```
+
+Run specific test file:
+
+```bash
+pytest tests/test_auth.py
+```
+
+Tests use SQLite in-memory database and don't require PostgreSQL.
+
+## Features
+
+- **Pagination**: User lists are paginated (20 per page)
+- **HTML Emails**: Beautiful responsive email templates for verification and password reset
+- **Logging**: User actions logged to `app.log` (auth, errors)
+- **Caching**: Flask-Caching for frequently accessed data (tags list)
+
+## Bonus features
+
+- **Google OAuth**: Sign in/register with Google account
+- **Interactive map**: Leaflet.js map showing nearby users with GPS localization
+- **Photo gallery**: Drag-and-drop upload, reorder images, basic editing (rotate, flip, brightness, contrast)
+- **Video/audio chat**: WebRTC peer-to-peer video calls for matched users
+- **Event scheduling**: Create, accept/decline date invitations with matched users
 
 ## Security
 
