@@ -22,7 +22,7 @@ class User(UserMixin, db.Model):
         db.Enum("heterosexual", "homosexual", "bisexual", name="sexual_preference_enum"), nullable=True
     )
     biography = db.Column(db.Text, nullable=True)
-    profile_picture_id = db.Column(db.Integer, db.ForeignKey("user_images.id"), nullable=True)
+    profile_picture_id = db.Column(db.Integer, db.ForeignKey("user_images.id", use_alter=True), nullable=True)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     location_enabled = db.Column(db.Boolean, default=False)
