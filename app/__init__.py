@@ -74,6 +74,24 @@ def create_app(config_class=None):
     if app.config.get("GOOGLE_CLIENT_ID"):
         init_oauth(app)
 
+    @app.before_request
+    def check_profile_complete():
+        from flask_login import current_user
+        from flask import request, redirect, url_for, flash
+        if not current_user.is_authenticated:
+            return
+        allowed_prefixes = (
+            "/auth/", "/profile/", "/oauth/", "/static/", "/uploads/",
+            "/notifications/count", "/chat/unread-count", "/socket.io/",
+        )
+        if any(request.path.startswith(p) for p in allowed_prefixes):
+            return
+        if request.path == "/":
+            return
+        if not current_user.gender or not current_user.biography:
+            flash("Please complete your profile before browsing.", "error")
+            return redirect(url_for("profile.edit"))
+
     @app.route("/")
     def index():
         from flask import redirect, url_for

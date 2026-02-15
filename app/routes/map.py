@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
 from app.models import User, Block, UserImage
+from app.utils.matching import calculate_age
 
 map_bp = Blueprint("map", __name__)
 
@@ -30,7 +31,7 @@ def users_json():
             "id": u.id,
             "username": u.username,
             "first_name": u.first_name,
-            "age": None,
+            "age": calculate_age(u.birth_date),
             "lat": u.latitude,
             "lng": u.longitude,
             "is_online": u.is_online,

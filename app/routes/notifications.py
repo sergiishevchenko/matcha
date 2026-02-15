@@ -19,6 +19,8 @@ def get_notification_text(notif):
         return f"You and {name} are now connected!"
     elif notif.type == "unlike":
         return f"{name} unliked your profile"
+    elif notif.type == "event":
+        return f"{name} sent you an event invitation"
     return "New notification"
 
 
