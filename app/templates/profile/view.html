@@ -73,7 +73,9 @@
     <section class="profile-section profile-actions">
         {% if is_match %}
         <p class="match-banner">You are connected! You can chat now.</p>
-        <a href="{{ url_for('chat.index') }}" class="btn">Send message</a>
+        <a href="{{ url_for('chat.conversation', user_id=user.id) }}" class="btn">Send message</a>
+        {% elif they_liked and not i_liked %}
+        <p class="liked-you-banner">{{ user.first_name }} has liked you!</p>
         {% endif %}
 
         {% if i_liked %}
@@ -85,7 +87,7 @@
         {% if user.profile_picture %}
         <form method="post" action="{{ url_for('browse.like', user_id=user.id) }}" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn">Like</button>
+            <button type="submit" class="btn">Like{% if they_liked %} back{% endif %}</button>
         </form>
         {% else %}
         <p class="hint">This user has no profile picture, you cannot like them.</p>

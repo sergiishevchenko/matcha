@@ -170,7 +170,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateLocation(lat, lng, manual) {
         fetch('{{ url_for("profile.update_location") }}', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
             body: JSON.stringify({latitude: lat, longitude: lng, manual: manual})
         }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.success) {
@@ -185,18 +188,47 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function fallbackIpLocation() {
+        status.textContent = 'Detecting approximate location...';
+        fetch('https://ipapi.co/json/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.latitude && data.longitude) {
+                    updateLocation(data.latitude, data.longitude, false);
+                    status.textContent = 'Approximate location detected via IP.';
+                } else {
+                    status.textContent = 'Could not detect location. Please enter manually.';
+                }
+            })
+            .catch(function() {
+                status.textContent = 'Could not detect location. Please enter manually.';
+            });
+    }
+
     btnGeo.addEventListener('click', function() {
         if (!navigator.geolocation) {
-            status.textContent = 'Geolocation not supported.';
+            fallbackIpLocation();
             return;
         }
         status.textContent = 'Detecting location...';
         navigator.geolocation.getCurrentPosition(function(pos) {
             updateLocation(pos.coords.latitude, pos.coords.longitude, false);
         }, function(err) {
-            status.textContent = 'Could not detect location. Please enter manually.';
+            fallbackIpLocation();
         });
     });
+
+    if (!latInput.value && !lngInput.value) {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                updateLocation(pos.coords.latitude, pos.coords.longitude, false);
+            }, function(err) {
+                fallbackIpLocation();
+            });
+        } else {
+            fallbackIpLocation();
+        }
+    }
 
     btnSave.addEventListener('click', function() {
         var lat = parseFloat(latInput.value);

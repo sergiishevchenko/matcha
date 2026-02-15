@@ -1,14 +1,16 @@
 {% if total_pages > 1 %}
+{% set args = request.args.to_dict() %}
+{% if 'page' in args %}{% set _ = args.pop('page') %}{% endif %}
 <nav class="pagination">
     {% if page > 1 %}
-    <a href="{{ url_for(request.endpoint, page=page-1, **request.args.to_dict(flat=True)|reject('equalto', 'page')|list|batch(2)|map('join', '=')|join('&')) }}" class="page-link">&laquo; Prev</a>
+    <a href="{{ url_for(request.endpoint, page=page-1, **args) }}" class="page-link">&laquo; Prev</a>
     {% endif %}
 
     {% set start_page = [1, page - 2]|max %}
     {% set end_page = [total_pages, page + 2]|min %}
 
     {% if start_page > 1 %}
-    <a href="{{ url_for(request.endpoint, page=1, **dict(request.args)) }}" class="page-link">1</a>
+    <a href="{{ url_for(request.endpoint, page=1, **args) }}" class="page-link">1</a>
     {% if start_page > 2 %}<span class="page-ellipsis">...</span>{% endif %}
     {% endif %}
 
@@ -16,17 +18,17 @@
     {% if p == page %}
     <span class="page-link current">{{ p }}</span>
     {% else %}
-    <a href="{{ url_for(request.endpoint, page=p, **dict(request.args)) }}" class="page-link">{{ p }}</a>
+    <a href="{{ url_for(request.endpoint, page=p, **args) }}" class="page-link">{{ p }}</a>
     {% endif %}
     {% endfor %}
 
     {% if end_page < total_pages %}
     {% if end_page < total_pages - 1 %}<span class="page-ellipsis">...</span>{% endif %}
-    <a href="{{ url_for(request.endpoint, page=total_pages, **dict(request.args)) }}" class="page-link">{{ total_pages }}</a>
+    <a href="{{ url_for(request.endpoint, page=total_pages, **args) }}" class="page-link">{{ total_pages }}</a>
     {% endif %}
 
     {% if page < total_pages %}
-    <a href="{{ url_for(request.endpoint, page=page+1, **dict(request.args)) }}" class="page-link">Next &raquo;</a>
+    <a href="{{ url_for(request.endpoint, page=page+1, **args) }}" class="page-link">Next &raquo;</a>
     {% endif %}
 </nav>
 {% endif %}
