@@ -439,6 +439,17 @@ body {
     margin-bottom: 0.5rem;
 }
 
+.liked-you-banner {
+    width: 100%;
+    padding: 0.75rem;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
 .view-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
@@ -930,6 +941,25 @@ body {
 .no-matches {
     padding: 1rem;
     color: #7f8c8d;
+    text-align: center;
+}
+
+.nav-chat {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.msg-badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background: #27ae60;
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 8px;
+    min-width: 16px;
     text-align: center;
 }
 
