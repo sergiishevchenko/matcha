@@ -139,6 +139,16 @@ def send_message():
     })
 
 
+@chat_bp.route("/unread-count")
+@login_required
+def unread_count():
+    count = Message.query.filter_by(
+        receiver_id=current_user.id,
+        is_read=False
+    ).count()
+    return jsonify({"count": count})
+
+
 @socketio.on("connect")
 def handle_connect():
     from flask_login import current_user
