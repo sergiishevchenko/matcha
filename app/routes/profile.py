@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from app import db
@@ -181,7 +181,7 @@ def update_location():
 def view(user_id):
     if user_id == current_user.id:
         return redirect(url_for("profile.edit"))
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     if not user.email_verified:
         flash("User not found.", "error")
         return redirect(url_for("browse.suggestions"))
@@ -193,7 +193,7 @@ def view(user_id):
     if they_blocked:
         flash("User not found.", "error")
         return redirect(url_for("browse.suggestions"))
-    pv = ProfileView(viewer_id=current_user.id, viewed_id=user.id, viewed_at=datetime.utcnow())
+    pv = ProfileView(viewer_id=current_user.id, viewed_id=user.id, viewed_at=datetime.now(timezone.utc).replace(tzinfo=None))
     db.session.add(pv)
     notif = Notification(user_id=user.id, type="view", related_user_id=current_user.id)
     db.session.add(notif)

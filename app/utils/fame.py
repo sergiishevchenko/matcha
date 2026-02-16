@@ -16,7 +16,7 @@ def calculate_fame_rating(user_id):
 
 
 def update_user_fame(user_id):
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user:
         user.fame_rating = calculate_fame_rating(user_id)
         db.session.commit()

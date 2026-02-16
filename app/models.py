@@ -1,11 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_login import UserMixin
 from app import db, login_manager
 
 
+def utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 class User(UserMixin, db.Model):
@@ -33,8 +37,8 @@ class User(UserMixin, db.Model):
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     is_online = db.Column(db.Boolean, default=False)
     last_seen = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     profile_picture = db.relationship("UserImage", foreign_keys=[profile_picture_id])
     images = db.relationship("UserImage", backref="user", foreign_keys="UserImage.user_id", lazy="dynamic")
@@ -47,7 +51,7 @@ class UserImage(db.Model):
     filename = db.Column(db.String(255), nullable=False)
     is_profile_picture = db.Column(db.Boolean, default=False)
     upload_order = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Tag(db.Model):
@@ -73,7 +77,7 @@ class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     liker_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     liked_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     __table_args__ = (db.UniqueConstraint("liker_id", "liked_id", name="uq_liker_liked"),)
 
 
@@ -83,7 +87,7 @@ class ProfileView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     viewer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     viewed_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viewed_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Block(db.Model):
@@ -91,7 +95,7 @@ class Block(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     blocker_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     blocked_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     __table_args__ = (db.UniqueConstraint("blocker_id", "blocked_id", name="uq_blocker_blocked"),)
 
 
@@ -101,7 +105,7 @@ class Report(db.Model):
     reporter_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     reported_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     reason = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Message(db.Model):
@@ -112,7 +116,7 @@ class Message(db.Model):
     receiver_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     content = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Notification(db.Model):
@@ -126,7 +130,7 @@ class Notification(db.Model):
     related_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     message_id = db.Column(db.Integer, db.ForeignKey("messages.id"), nullable=True)
     is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 
 class Event(db.Model):
@@ -144,8 +148,8 @@ class Event(db.Model):
         db.Enum("pending", "accepted", "declined", "cancelled", name="event_status_enum"),
         default="pending"
     )
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     creator = db.relationship("User", foreign_keys=[creator_id], backref="created_events")
     invitee = db.relationship("User", foreign_keys=[invitee_id], backref="invited_events")

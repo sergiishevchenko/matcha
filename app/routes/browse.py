@@ -97,7 +97,7 @@ def like(user_id):
     if user_id == current_user.id:
         flash("You cannot like yourself.", "error")
         return redirect(url_for("browse.suggestions"))
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     if not current_user.profile_picture_id:
         flash("You need a profile picture to like someone.", "error")
         return redirect(url_for("profile.view", user_id=user_id))
@@ -163,7 +163,7 @@ def unlike(user_id):
 def block(user_id):
     if user_id == current_user.id:
         return redirect(url_for("browse.suggestions"))
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     existing = Block.query.filter_by(blocker_id=current_user.id, blocked_id=user_id).first()
     if existing:
         flash("User already blocked.", "error")
@@ -182,7 +182,7 @@ def block(user_id):
 def report(user_id):
     if user_id == current_user.id:
         return redirect(url_for("browse.suggestions"))
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     reason = request.form.get("reason", "Reported as fake account")
     new_report = Report(reporter_id=current_user.id, reported_id=user_id, reason=reason)
     db.session.add(new_report)

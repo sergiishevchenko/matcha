@@ -7,7 +7,7 @@ notifications_bp = Blueprint("notifications", __name__)
 
 
 def get_notification_text(notif):
-    user = User.query.get(notif.related_user_id) if notif.related_user_id else None
+    user = db.session.get(User, notif.related_user_id) if notif.related_user_id else None
     name = user.first_name if user else "Someone"
     if notif.type == "like":
         return f"{name} liked your profile"
@@ -32,7 +32,7 @@ def index():
     ).limit(50).all()
     notif_data = []
     for n in notifications:
-        user = User.query.get(n.related_user_id) if n.related_user_id else None
+        user = db.session.get(User, n.related_user_id) if n.related_user_id else None
         notif_data.append({
             "notification": n,
             "text": get_notification_text(n),

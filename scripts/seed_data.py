@@ -2,7 +2,7 @@
 import os
 import sys
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -129,7 +129,7 @@ def create_users(count=500):
             fame_rating=random.randint(0, 100),
             email_verified=True,
             is_online=random.choice([True, False]),
-            last_seen=datetime.utcnow() - timedelta(minutes=random.randint(0, 10080)),
+            last_seen=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=random.randint(0, 10080)),
         )
         db.session.add(user)
         users.append(user)
@@ -176,7 +176,7 @@ def create_interactions(users, like_count=2000, view_count=5000):
         db.session.add(ProfileView(
             viewer_id=viewer_id,
             viewed_id=viewed_id,
-            viewed_at=datetime.utcnow() - timedelta(minutes=random.randint(0, 43200))
+            viewed_at=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=random.randint(0, 43200))
         ))
         views_created += 1
         if views_created % 1000 == 0:

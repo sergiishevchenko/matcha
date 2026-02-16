@@ -28,7 +28,7 @@ def call(user_id):
     if user_id == current_user.id:
         flash("You cannot call yourself.", "error")
         return redirect(url_for("chat.index"))
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     if is_blocked(current_user.id, user_id):
         flash("Cannot call this user.", "error")
         return redirect(url_for("chat.index"))

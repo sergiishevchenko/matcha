@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db, bcrypt
@@ -105,7 +105,7 @@ def login():
     login_user(user)
     log_auth("login", username, success=True)
     user.is_online = True
-    user.last_seen = datetime.utcnow()
+    user.last_seen = datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.commit()
     next_page = request.args.get("next")
     return redirect(next_page or url_for("browse.suggestions"))
@@ -116,7 +116,7 @@ def login():
 def logout():
     if current_user.is_authenticated:
         current_user.is_online = False
-        current_user.last_seen = datetime.utcnow()
+        current_user.last_seen = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
     logout_user()
     flash("You have been logged out.", "success")
@@ -137,7 +137,7 @@ def reset_password_request():
     if user:
         from flask import current_app
         user.reset_token = secrets.token_urlsafe(32)
-        user.reset_token_expiry = datetime.utcnow() + timedelta(
+        user.reset_token_expiry = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(
             hours=current_app.config.get("RESET_TOKEN_EXPIRY_HOURS", 1)
         )
         db.session.commit()
@@ -154,7 +154,7 @@ def reset_password_confirm(token):
     if current_user.is_authenticated:
         return redirect(url_for("browse.suggestions"))
     user = User.query.filter_by(reset_token=token).first()
-    if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.utcnow():
+    if not user or not user.reset_token_expiry or user.reset_token_expiry < datetime.now(timezone.utc).replace(tzinfo=None):
         flash("Invalid or expired reset link.", "error")
         return redirect(url_for("auth.reset_password_request"))
     if request.method != "POST":

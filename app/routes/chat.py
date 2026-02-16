@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from flask_socketio import emit, join_room, leave_room
@@ -76,7 +76,7 @@ def index():
 def conversation(user_id):
     if user_id == current_user.id:
         return redirect(url_for("chat.index"))
-    other = User.query.get_or_404(user_id)
+    other = db.get_or_404(User, user_id)
     if not is_match(current_user.id, user_id):
         flash("You can only chat with your matches.", "error")
         return redirect(url_for("chat.index"))
@@ -155,7 +155,7 @@ def handle_connect():
     if current_user.is_authenticated:
         join_room(f"user_{current_user.id}")
         current_user.is_online = True
-        current_user.last_seen = datetime.utcnow()
+        current_user.last_seen = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
 
 
@@ -165,7 +165,7 @@ def handle_disconnect():
     if current_user.is_authenticated:
         leave_room(f"user_{current_user.id}")
         current_user.is_online = False
-        current_user.last_seen = datetime.utcnow()
+        current_user.last_seen = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
 
 

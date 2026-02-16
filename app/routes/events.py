@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app import db
@@ -29,7 +29,7 @@ def create(user_id):
     if user_id == current_user.id:
         flash("You cannot create an event with yourself.", "error")
         return redirect(url_for("events.index"))
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     blocked = Block.query.filter(
         ((Block.blocker_id == current_user.id) & (Block.blocked_id == user_id)) |
         ((Block.blocker_id == user_id) & (Block.blocked_id == current_user.id))
@@ -54,7 +54,7 @@ def create(user_id):
         except ValueError:
             flash("Invalid date format.", "error")
             return render_template("events/create.html", user=user)
-        if event_datetime < datetime.utcnow():
+        if event_datetime < datetime.now(timezone.utc).replace(tzinfo=None):
             flash("Event date must be in the future.", "error")
             return render_template("events/create.html", user=user)
         event = Event(
@@ -79,7 +79,7 @@ def create(user_id):
 @events_bp.route("/view/<int:event_id>")
 @login_required
 def view(event_id):
-    event = Event.query.get_or_404(event_id)
+    event = db.get_or_404(Event, event_id)
     if event.creator_id != current_user.id and event.invitee_id != current_user.id:
         flash("Access denied.", "error")
         return redirect(url_for("events.index"))
@@ -91,7 +91,7 @@ def view(event_id):
 @events_bp.route("/respond/<int:event_id>", methods=["POST"])
 @login_required
 def respond(event_id):
-    event = Event.query.get_or_404(event_id)
+    event = db.get_or_404(Event, event_id)
     if event.invitee_id != current_user.id:
         flash("Access denied.", "error")
         return redirect(url_for("events.index"))
@@ -113,7 +113,7 @@ def respond(event_id):
 @events_bp.route("/cancel/<int:event_id>", methods=["POST"])
 @login_required
 def cancel(event_id):
-    event = Event.query.get_or_404(event_id)
+    event = db.get_or_404(Event, event_id)
     if event.creator_id != current_user.id:
         flash("Access denied.", "error")
         return redirect(url_for("events.index"))
