@@ -1,6 +1,6 @@
 import pytest
 from app import create_app, db, bcrypt
-from app.models import User, Tag, UserTag, Like, Block, Message, Notification
+from app.models import User, UserImage, Tag, UserTag, Like, Block, Message, Notification
 
 
 class TestConfig:
@@ -44,8 +44,15 @@ def user(app):
             first_name="Test",
             last_name="User",
             email_verified=True,
+            gender="male",
+            biography="Test biography",
         )
         db.session.add(u)
+        db.session.flush()
+        img = UserImage(user_id=u.id, filename="test.jpg")
+        db.session.add(img)
+        db.session.flush()
+        u.profile_picture_id = img.id
         db.session.commit()
         return u.id
 
@@ -61,8 +68,15 @@ def user2(app):
             first_name="Test2",
             last_name="User2",
             email_verified=True,
+            gender="female",
+            biography="Test2 biography",
         )
         db.session.add(u)
+        db.session.flush()
+        img = UserImage(user_id=u.id, filename="test2.jpg")
+        db.session.add(img)
+        db.session.flush()
+        u.profile_picture_id = img.id
         db.session.commit()
         return u.id
 

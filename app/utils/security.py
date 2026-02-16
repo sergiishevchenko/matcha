@@ -30,15 +30,16 @@ def is_password_strong(password):
     words = _load_common_words()
     lower = password.lower()
     for word in words:
-        if len(word) >= 4 and word in lower:
+        if len(word) >= 5 and word in lower:
             return False, "Password must not contain common English words."
     return True, None
 
 
 def sanitize_string(value, max_length=255):
     if value is None:
-        return None
-    s = str(value).strip()
+        return ""
+    s = re.sub(r"<[^>]*>", "", str(value))
+    s = s.strip()
     if len(s) > max_length:
         s = s[:max_length]
-    return s if s else None
+    return s if s else ""
