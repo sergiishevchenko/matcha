@@ -143,12 +143,15 @@ def delete_image(image_id):
     if not img:
         flash("Image not found.", "error")
         return redirect(url_for("profile.edit"))
-    upload_folder = current_app.config.get("UPLOAD_FOLDER", "./app/uploads")
-    delete_image_file(img["filename"], upload_folder)
     was_profile = img["is_profile_picture"]
+    current_profile = query_one(
+        "SELECT profile_picture_id FROM users WHERE id = %s",
+        (current_user.id,),
+    )
+    referenced_by_current_user = current_profile and current_profile["profile_picture_id"] == image_id
+    execute("UPDATE users SET profile_picture_id = NULL WHERE profile_picture_id = %s", (image_id,))
     execute("DELETE FROM user_images WHERE id = %s", (image_id,))
-    if was_profile:
-        execute("UPDATE users SET profile_picture_id = NULL WHERE id = %s", (current_user.id,))
+    if was_profile or referenced_by_current_user:
         next_img = query_one(
             "SELECT id FROM user_images WHERE user_id = %s ORDER BY upload_order LIMIT 1",
             (current_user.id,),
@@ -162,6 +165,8 @@ def delete_image(image_id):
                 (next_img["id"], current_user.id),
             )
     commit()
+    upload_folder = current_app.config.get("UPLOAD_FOLDER", "./app/uploads")
+    delete_image_file(img["filename"], upload_folder)
     flash("Image deleted.", "success")
     return redirect(url_for("profile.edit"))
 
