@@ -562,12 +562,19 @@ body {
     margin: 0 auto;
 }
 
+.browse-page h1 {
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+}
+
 .browse-controls {
     margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    padding: 1.2rem;
+    background: linear-gradient(180deg, #ffffff, #f8faff);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
 }
 
 .filter-form {
@@ -579,44 +586,228 @@ body {
 .filter-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.9rem;
     align-items: flex-end;
 }
 
 .filter-group {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 0.45rem;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.55rem 0.7rem;
 }
 
 .filter-group label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #555;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 0.15rem;
 }
 
 .filter-group input,
 .filter-group select {
-    padding: 0.4rem 0.6rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     font-size: 0.9rem;
-    width: 80px;
+    width: 84px;
+    background: #fbfcff;
 }
 
 .filter-group input[type="text"],
 .filter-wide input {
-    width: 200px;
+    width: 220px;
 }
 
 .filter-group select {
     width: auto;
-    min-width: 120px;
+    min-width: 130px;
 }
 
 .filter-group span {
     align-self: center;
     color: #999;
+}
+
+.suggestions-page .filter-form-suggestions {
+    gap: 0.9rem;
+}
+
+.suggestions-page .filter-row-main {
+    display: grid;
+    grid-template-columns: 1.2fr 1.2fr 1fr;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.suggestions-page .filter-row-main .filter-group {
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.45rem;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.62rem 0.72rem;
+}
+
+.suggestions-page .filter-row-main .filter-group label {
+    margin-right: 0.2rem;
+    white-space: nowrap;
+}
+
+.suggestions-page .filter-row-main .filter-group input[type="text"] {
+    width: 200px;
+}
+
+.suggestions-page .filter-row-main .filter-group input[name="location_max"] {
+    width: 108px;
+}
+
+.suggestions-page .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.suggestions-page .range-inputs span {
+    color: #94a3b8;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.suggestions-page .filter-row-actions {
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.suggestions-page .filter-row-actions .filter-group-tags input[type="text"] {
+    width: 220px;
+}
+
+.suggestions-page .filter-row-actions .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.62rem 0.72rem;
+}
+
+.filter-actions .btn {
+    min-width: 110px;
+}
+
+.suggestions-page {
+    font-family: "SF Pro Text", "Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.suggestions-page .browse-controls {
+    border-radius: 16px;
+    padding: 1.1rem;
+}
+
+.suggestions-page .filter-group input,
+.suggestions-page .filter-group select {
+    height: 42px;
+    font-size: 0.97rem;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.suggestions-page .filter-group input::placeholder {
+    color: #9aa4b2;
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 1;
+}
+
+.suggestions-page .filter-group label {
+    font-size: 0.76rem;
+    letter-spacing: 0.06em;
+    color: #475569;
+}
+
+.suggestions-page .filter-actions .btn {
+    min-width: 124px;
+    height: 42px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.suggestions-page .filter-actions .btn-secondary,
+.suggestions-page .filter-actions .btn-reset {
+    background: linear-gradient(135deg, #6f7a8f, #4f596d);
+    box-shadow: 0 10px 20px rgba(79, 89, 109, 0.28);
+}
+
+.suggestions-page .filter-actions .btn-secondary:hover,
+.suggestions-page .filter-actions .btn-reset:hover {
+    background: linear-gradient(135deg, #5f6a7f, #444d61);
+}
+
+.suggestions-page .user-card {
+    border-radius: 16px;
+}
+
+.suggestions-page .card-info {
+    padding: 0.95rem 0.95rem 0.85rem;
+    min-height: 156px;
+    gap: 0.35rem;
+}
+
+.suggestions-page .card-info h3 {
+    font-size: 1.62rem;
+    line-height: 1.15;
+    font-weight: 800;
+    color: #1f2937;
+    margin-bottom: 0.3rem;
+}
+
+.suggestions-page .card-info .username {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.suggestions-page .card-info .distance,
+.suggestions-page .card-info .fame,
+.suggestions-page .card-info .common-tags {
+    font-size: 1.02rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.suggestions-page .card-info .common-tags {
+    color: #1d8a5a;
+    font-weight: 700;
+}
+
+.suggestions-page .card-actions {
+    padding: 0.8rem 0.95rem 0.95rem;
+}
+
+.suggestions-page .card-actions .btn-small {
+    height: 40px;
+    font-size: 0.98rem;
+    font-weight: 700;
 }
 
 .popular-tags {
@@ -644,25 +835,28 @@ body {
 
 .user-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+    gap: 1.1rem;
 }
 
 .user-card {
     background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
     overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-sm);
 }
 
 .user-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
 }
 
 .card-link {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     text-decoration: none;
     color: inherit;
 }
@@ -685,7 +879,11 @@ body {
 }
 
 .card-info {
-    padding: 0.75rem;
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 140px;
 }
 
 .card-info h3 {
@@ -702,8 +900,8 @@ body {
 .card-info .distance,
 .card-info .fame,
 .card-info .common-tags {
-    font-size: 0.8rem;
-    color: #95a5a6;
+    font-size: 0.82rem;
+    color: #64748b;
     margin: 0;
 }
 
@@ -712,11 +910,18 @@ body {
 }
 
 .card-actions {
-    padding: 0.5rem 0.75rem;
-    border-top: 1px solid #eee;
+    padding: 0.65rem 0.85rem 0.9rem;
+    border-top: 1px solid #edf1fa;
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    margin-top: auto;
+}
+
+.card-actions .btn-small {
+    width: 100%;
+    border-radius: 10px;
+    padding: 0.48rem 0.7rem;
 }
 
 .liked-badge {
@@ -1186,6 +1391,25 @@ body {
     .filter-group input[type="text"],
     .filter-wide input {
         width: 100%;
+    }
+
+    .suggestions-page .filter-row-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .suggestions-page .filter-row-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .filter-actions {
+        width: 100%;
+    }
+
+    .filter-actions .btn {
+        flex: 1;
+        min-width: 0;
     }
 
     .user-grid {
@@ -1925,5 +2149,612 @@ body {
     .profile-edit .stats-grid,
     .profile-edit .stats-actions {
         grid-template-columns: 1fr;
+    }
+}
+
+.suggestions-page .filter-form-suggestions .filter-row-main {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-row-actions {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.5fr) minmax(180px, 1fr) auto;
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 58px;
+    padding: 0.62rem 0.74rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group label {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.suggestions-page .filter-form-suggestions .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group input,
+.suggestions-page .filter-form-suggestions .filter-group select {
+    height: 40px;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group-range input {
+    width: 84px;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group input[name="location_max"] {
+    width: 110px;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group-tags input[type="text"] {
+    width: 100%;
+    min-width: 0;
+}
+
+.suggestions-page .filter-form-suggestions .filter-actions {
+    justify-content: flex-end;
+    width: auto;
+}
+
+.suggestions-page .card-info h3 {
+    font-size: 1.25rem;
+}
+
+.suggestions-page .card-info .username,
+.suggestions-page .card-info .distance,
+.suggestions-page .card-info .fame,
+.suggestions-page .card-info .common-tags {
+    font-size: 0.95rem;
+}
+
+@media (max-width: 1000px) {
+    .suggestions-page .filter-form-suggestions .filter-row-main {
+        grid-template-columns: 1fr;
+    }
+
+    .suggestions-page .filter-form-suggestions .filter-row-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .suggestions-page .filter-form-suggestions .filter-actions {
+        justify-content: stretch;
+    }
+
+    .suggestions-page .filter-form-suggestions .filter-actions .btn {
+        flex: 1;
+    }
+}
+
+.suggestions-page .browse-controls {
+    background: #ffffff;
+    border: 1px solid #e6eaf3;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    padding: 1rem;
+}
+
+.suggestions-page .filter-form-suggestions {
+    gap: 0.7rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-row-main {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-row-actions {
+    grid-template-columns: 1.5fr 1fr auto;
+    gap: 0.7rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group {
+    border-radius: 10px;
+    border: 1px solid #e6eaf3;
+    background: #f8faff;
+    min-height: 52px;
+    padding: 0.45rem 0.6rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #5b6475;
+    min-width: max-content;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group input,
+.suggestions-page .filter-form-suggestions .filter-group select {
+    height: 36px;
+    border: 1px solid #dce3f0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #243042;
+    font-size: 0.92rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group input::placeholder {
+    color: #98a3b6;
+}
+
+.suggestions-page .filter-form-suggestions .range-inputs span {
+    color: #a0a9ba;
+    font-weight: 600;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group-range input {
+    width: 74px;
+}
+
+.suggestions-page .filter-form-suggestions .filter-group input[name="location_max"] {
+    width: 94px;
+}
+
+.suggestions-page .filter-form-suggestions .filter-actions {
+    gap: 0.5rem;
+}
+
+.suggestions-page .filter-form-suggestions .filter-actions .btn {
+    min-width: 108px;
+    height: 38px;
+    border-radius: 9px;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.suggestions-page .filter-form-suggestions .btn-reset {
+    background: linear-gradient(135deg, #627086, #4f5c70);
+}
+
+.suggestions-page .card-info {
+    min-height: 134px;
+    padding: 0.8rem 0.85rem 0.75rem;
+    gap: 0.2rem;
+}
+
+.suggestions-page .card-info h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 0.2rem;
+}
+
+.suggestions-page .card-info .username,
+.suggestions-page .card-info .distance,
+.suggestions-page .card-info .fame,
+.suggestions-page .card-info .common-tags {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.suggestions-page .card-info .username {
+    color: #6e7c92;
+}
+
+.suggestions-page .card-info .distance,
+.suggestions-page .card-info .fame {
+    color: #4f5c70;
+}
+
+.suggestions-page .card-info .common-tags {
+    color: #1f8c60;
+}
+
+.suggestions-page .card-actions {
+    padding: 0.6rem 0.85rem 0.8rem;
+}
+
+.suggestions-page .card-actions .btn-small {
+    height: 36px;
+    border-radius: 9px;
+    font-size: 0.9rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-main {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+    align-items: stretch;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-actions {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) auto;
+    gap: 0.7rem;
+    align-items: stretch;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    min-height: 52px;
+    padding: 0.5rem 0.65rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group label {
+    margin: 0;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group input,
+.suggestions-page .filter-form.filter-form-suggestions .filter-group select {
+    height: 36px;
+    margin: 0;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group-range .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group-range input {
+    width: 76px;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions input[name="location_max"] {
+    width: 98px;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group-tags input[type="text"] {
+    width: 100%;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    width: auto;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-actions .btn {
+    min-width: 110px;
+    height: 36px;
+}
+
+@media (max-width: 1000px) {
+    .suggestions-page .filter-form.filter-form-suggestions .filter-row-main {
+        grid-template-columns: 1fr;
+    }
+
+    .suggestions-page .filter-form.filter-form-suggestions .filter-row-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .suggestions-page .filter-form.filter-form-suggestions .filter-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .suggestions-page .filter-form.filter-form-suggestions .filter-actions .btn {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-main,
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.7rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-main .filter-group,
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-actions .filter-group {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group-tags {
+    min-width: 260px;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-actions {
+    margin-left: auto;
+}
+
+@media (max-width: 1000px) {
+    .suggestions-page .filter-form.filter-form-suggestions .filter-row-main,
+    .suggestions-page .filter-form.filter-form-suggestions .filter-row-actions {
+        flex-wrap: wrap;
+    }
+
+    .suggestions-page .filter-form.filter-form-suggestions .filter-actions {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+.suggestions-page .filter-form.filter-form-suggestions {
+    gap: 0.55rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-main,
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0.34rem 0.48rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group label {
+    margin: 0;
+    line-height: 1;
+    white-space: nowrap;
+    font-size: 0.72rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group input,
+.suggestions-page .filter-form.filter-form-suggestions .filter-group select {
+    height: 31px;
+    margin: 0;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.32rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group-range input {
+    width: 68px;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions input[name="location_max"] {
+    width: 86px;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-group-tags input[type="text"] {
+    width: 210px;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-row-actions select[name="sort"] {
+    width: 150px;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.suggestions-page .filter-form.filter-form-suggestions .filter-actions .btn {
+    min-width: 100px;
+    height: 33px;
+    padding: 0.3rem 0.75rem;
+}
+
+@media (max-width: 1000px) {
+    .suggestions-page .filter-form.filter-form-suggestions .filter-row-main,
+    .suggestions-page .filter-form.filter-form-suggestions .filter-row-actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .suggestions-page .filter-form.filter-form-suggestions .filter-group-tags input[type="text"] {
+        width: 100%;
+    }
+
+    .suggestions-page .filter-form.filter-form-suggestions .filter-actions {
+        width: 100%;
+    }
+
+    .suggestions-page .filter-form.filter-form-suggestions .filter-actions .btn {
+        flex: 1;
+    }
+}
+
+.sf {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.65rem 0.8rem;
+    margin-bottom: 1.25rem;
+}
+
+.sf-body {
+    display: flex;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.sf-filters {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.sf-row {
+    display: grid;
+    align-items: stretch;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.sf-row:first-child {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sf-field {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: default;
+}
+
+.sf-field span {
+    width: 68px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.sf-field em {
+    color: #94a3b8;
+    font-style: normal;
+    font-weight: 600;
+}
+
+.sf-field input,
+.sf-field select {
+    height: 34px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #1e293b;
+    background: #f8fafc;
+    transition: border-color 0.15s;
+}
+
+.sf-field input:focus,
+.sf-field select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.sf-field input::placeholder {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.sf-field input[type="number"] {
+    width: 72px;
+}
+
+.sf-field input[name="location_max"] {
+    width: 90px;
+}
+
+.sf-field input[type="text"] {
+    width: 100%;
+    min-width: 160px;
+}
+
+.sf-field select {
+    min-width: 140px;
+}
+
+.sf-field-grow {
+    min-width: 0;
+}
+
+.sf-row:last-child {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.sf-row:first-child .sf-field:last-child,
+.sf-row:last-child .sf-field-grow,
+.sf-row:last-child .sf-field:not(.sf-field-grow) {
+    display: grid;
+    grid-template-columns: 68px minmax(0, 1fr);
+    column-gap: 0.35rem;
+    align-items: center;
+}
+
+.sf-row:first-child .sf-field:last-child input[name="location_max"],
+.sf-row:last-child .sf-field-grow input[type="text"],
+.sf-row:last-child .sf-field:not(.sf-field-grow) select {
+    width: 100%;
+    min-width: 0;
+}
+
+.sf-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-left: auto;
+    padding-left: 0.75rem;
+    border-left: 1px solid #e2e8f0;
+    align-self: stretch;
+    justify-content: center;
+}
+
+.sf-btn {
+    height: 34px;
+    min-width: 240px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2rem;
+    width: 100%;
+}
+
+.sf-btn-reset {
+    background: #64748b;
+    box-shadow: none;
+}
+
+.sf-btn-reset:hover {
+    background: #475569;
+}
+
+@media (max-width: 768px) {
+    .sf-body {
+        flex-direction: column;
+    }
+
+    .sf-row {
+        grid-template-columns: 1fr;
+    }
+
+    .sf-field-grow {
+        width: 100%;
+    }
+
+    .sf-btns {
+        flex-direction: row;
+        width: 100%;
+        margin-left: 0;
+        padding-left: 0;
+        padding-top: 0.5rem;
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .sf-btn {
+        flex: 1;
+        min-width: 0;
     }
 }

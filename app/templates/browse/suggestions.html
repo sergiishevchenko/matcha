@@ -1,49 +1,53 @@
 {% extends "base.html" %}
 {% block title %}Suggestions - Matcha{% endblock %}
 {% block content %}
-<div class="browse-page">
+<div class="browse-page suggestions-page">
     <h1>Suggestions</h1>
 
-    <div class="browse-controls">
-        <form method="get" action="{{ url_for('browse.suggestions') }}" class="filter-form">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label>Age</label>
-                    <input type="number" name="age_min" placeholder="Min" value="{{ filters.get('age_min', '') }}" min="18" max="99">
-                    <span>-</span>
-                    <input type="number" name="age_max" placeholder="Max" value="{{ filters.get('age_max', '') }}" min="18" max="99">
+    <form method="get" action="{{ url_for('browse.suggestions') }}" class="sf">
+        <div class="sf-body">
+            <div class="sf-filters">
+                <div class="sf-row">
+                    <label class="sf-field">
+                        <span>Age</span>
+                        <input type="number" name="age_min" placeholder="from" value="{{ filters.get('age_min', '') }}" min="18" max="99">
+                        <em>&ndash;</em>
+                        <input type="number" name="age_max" placeholder="to" value="{{ filters.get('age_max', '') }}" min="18" max="99">
+                    </label>
+                    <label class="sf-field">
+                        <span>Fame</span>
+                        <input type="number" name="fame_min" placeholder="from" value="{{ filters.get('fame_min', '') }}" min="0">
+                        <em>&ndash;</em>
+                        <input type="number" name="fame_max" placeholder="to" value="{{ filters.get('fame_max', '') }}" min="0">
+                    </label>
+                    <label class="sf-field">
+                        <span>Distance</span>
+                        <input type="number" name="location_max" placeholder="max km" value="{{ filters.get('location_max', '') }}" min="1">
+                    </label>
                 </div>
-                <div class="filter-group">
-                    <label>Fame</label>
-                    <input type="number" name="fame_min" placeholder="Min" value="{{ filters.get('fame_min', '') }}" min="0">
-                    <span>-</span>
-                    <input type="number" name="fame_max" placeholder="Max" value="{{ filters.get('fame_max', '') }}" min="0">
-                </div>
-                <div class="filter-group">
-                    <label>Distance (km)</label>
-                    <input type="number" name="location_max" placeholder="Max km" value="{{ filters.get('location_max', '') }}" min="1">
-                </div>
-                <div class="filter-group">
-                    <label>Tags</label>
-                    <input type="text" name="tags" placeholder="music, travel" value="{{ filters.get('tags', '') }}">
+                <div class="sf-row">
+                    <label class="sf-field sf-field-grow">
+                        <span>Tags</span>
+                        <input type="text" name="tags" placeholder="music, travel" value="{{ filters.get('tags', '') }}">
+                    </label>
+                    <label class="sf-field">
+                        <span>Sort</span>
+                        <select name="sort">
+                            <option value="score" {% if sort_by == 'score' %}selected{% endif %}>Best match</option>
+                            <option value="age" {% if sort_by == 'age' %}selected{% endif %}>Age</option>
+                            <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Distance</option>
+                            <option value="fame" {% if sort_by == 'fame' %}selected{% endif %}>Fame rating</option>
+                            <option value="tags" {% if sort_by == 'tags' %}selected{% endif %}>Common tags</option>
+                        </select>
+                    </label>
                 </div>
             </div>
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label>Sort by</label>
-                    <select name="sort">
-                        <option value="score" {% if sort_by == 'score' %}selected{% endif %}>Best match</option>
-                        <option value="age" {% if sort_by == 'age' %}selected{% endif %}>Age</option>
-                        <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Distance</option>
-                        <option value="fame" {% if sort_by == 'fame' %}selected{% endif %}>Fame rating</option>
-                        <option value="tags" {% if sort_by == 'tags' %}selected{% endif %}>Common tags</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn">Apply</button>
-                <a href="{{ url_for('browse.suggestions') }}" class="btn btn-secondary">Reset</a>
+            <div class="sf-btns">
+                <button type="submit" class="btn sf-btn">Apply</button>
+                <a href="{{ url_for('browse.suggestions') }}" class="btn sf-btn sf-btn-reset">Reset</a>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 
     {% if results %}
     <div class="user-grid">
