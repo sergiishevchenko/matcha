@@ -47,6 +47,10 @@ def create_app(config_class=None):
         setup_logger(app)
 
     upload_folder = app.config.get("UPLOAD_FOLDER", "./app/uploads")
+    if not os.path.isabs(upload_folder):
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        upload_folder = os.path.abspath(os.path.join(project_root, upload_folder))
+    app.config["UPLOAD_FOLDER"] = upload_folder
     if not os.path.exists(upload_folder):
         os.makedirs(upload_folder)
 
