@@ -1,8 +1,7 @@
 import math
 from datetime import date
-from sqlalchemy import func, and_, or_, not_
-from app import db
-from app.models import User, UserTag, Tag, Block, Like
+from types import SimpleNamespace
+from app.database import query_all
 
 
 def calculate_age(birth_date):
@@ -26,58 +25,78 @@ def haversine_distance(lat1, lon1, lat2, lon2):
 
 
 def get_user_tag_ids(user_id):
-    return set(ut.tag_id for ut in UserTag.query.filter_by(user_id=user_id).all())
+    rows = query_all("SELECT tag_id FROM user_tags WHERE user_id = %s", (user_id,))
+    return set(r["tag_id"] for r in rows)
 
 
-def get_matching_query(current_user, filters=None):
+def _build_user(row):
+    pp = None
+    if row.get("pp_filename"):
+        pp = SimpleNamespace(id=row.get("pp_id"), filename=row["pp_filename"])
+    data = {k: v for k, v in row.items() if k not in ("pp_filename", "pp_id")}
+    user = SimpleNamespace(**data)
+    user.profile_picture = pp
+    return user
+
+
+def get_matching_candidates(current_user, filters=None):
     filters = filters or {}
-    blocked_by_me = db.session.query(Block.blocked_id).filter(Block.blocker_id == current_user.id)
-    blocked_me = db.session.query(Block.blocker_id).filter(Block.blocked_id == current_user.id)
-    query = User.query.filter(
-        User.id != current_user.id,
-        User.email_verified == True,
-        User.id.notin_(blocked_by_me),
-        User.id.notin_(blocked_me),
-    )
+    params = [current_user.id, current_user.id, current_user.id]
+    where = [
+        "u.id != %s",
+        "u.email_verified = true",
+        "u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = %s)",
+        "u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = %s)",
+    ]
+
     if current_user.gender and current_user.sexual_preference:
         if current_user.sexual_preference == "heterosexual":
             if current_user.gender == "male":
-                query = query.filter(User.gender == "female")
+                where.append("u.gender = 'female'")
             elif current_user.gender == "female":
-                query = query.filter(User.gender == "male")
+                where.append("u.gender = 'male'")
         elif current_user.sexual_preference == "homosexual":
-            query = query.filter(User.gender == current_user.gender)
-    query = query.filter(
-        or_(
-            User.sexual_preference == None,
-            User.sexual_preference == "bisexual",
-            and_(
-                User.sexual_preference == "heterosexual",
-                User.gender != current_user.gender
-            ),
-            and_(
-                User.sexual_preference == "homosexual",
-                User.gender == current_user.gender
-            ),
+            where.append("u.gender = %s")
+            params.append(current_user.gender)
+
+    if current_user.gender:
+        where.append(
+            "(u.sexual_preference IS NULL OR u.sexual_preference = 'bisexual' OR "
+            "(u.sexual_preference = 'heterosexual' AND u.gender != %s) OR "
+            "(u.sexual_preference = 'homosexual' AND u.gender = %s))"
         )
-    )
+        params.extend([current_user.gender, current_user.gender])
+
     if filters.get("age_min"):
         max_birth = date.today().replace(year=date.today().year - int(filters["age_min"]))
-        query = query.filter(or_(User.birth_date == None, User.birth_date <= max_birth))
+        where.append("(u.birth_date IS NULL OR u.birth_date <= %s)")
+        params.append(max_birth)
     if filters.get("age_max"):
         min_birth = date.today().replace(year=date.today().year - int(filters["age_max"]) - 1)
-        query = query.filter(or_(User.birth_date == None, User.birth_date >= min_birth))
+        where.append("(u.birth_date IS NULL OR u.birth_date >= %s)")
+        params.append(min_birth)
     if filters.get("fame_min"):
-        query = query.filter(User.fame_rating >= int(filters["fame_min"]))
+        where.append("u.fame_rating >= %s")
+        params.append(int(filters["fame_min"]))
     if filters.get("fame_max"):
-        query = query.filter(User.fame_rating <= int(filters["fame_max"]))
+        where.append("u.fame_rating <= %s")
+        params.append(int(filters["fame_max"]))
     if filters.get("tags"):
         tag_names = [t.strip().lower() for t in filters["tags"].split(",") if t.strip()]
         if tag_names:
-            tag_ids = db.session.query(Tag.id).filter(Tag.name.in_(tag_names)).subquery()
-            users_with_tags = db.session.query(UserTag.user_id).filter(UserTag.tag_id.in_(tag_ids)).distinct()
-            query = query.filter(User.id.in_(users_with_tags))
-    return query
+            ph = ",".join(["%s"] * len(tag_names))
+            where.append(
+                f"u.id IN (SELECT ut.user_id FROM user_tags ut "
+                f"JOIN tags t ON ut.tag_id = t.id WHERE t.name IN ({ph}))"
+            )
+            params.extend(tag_names)
+
+    sql = (
+        "SELECT u.*, ui.filename AS pp_filename, ui.id AS pp_id "
+        "FROM users u LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
+        "WHERE " + " AND ".join(where)
+    )
+    return query_all(sql, params)
 
 
 def score_user(user, current_user, my_tag_ids):
@@ -101,8 +120,8 @@ def score_user(user, current_user, my_tag_ids):
 
 
 def get_suggestions(current_user, sort_by=None, filters=None, limit=50):
-    query = get_matching_query(current_user, filters)
-    users = query.all()
+    rows = get_matching_candidates(current_user, filters)
+    users = [_build_user(r) for r in rows]
     my_tag_ids = get_user_tag_ids(current_user.id)
     scored = []
     for u in users:

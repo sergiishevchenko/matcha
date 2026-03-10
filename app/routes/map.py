@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, jsonify
 from flask_login import login_required, current_user
-from app.models import User, Block, UserImage
+from app.database import query_all
 from app.utils.matching import calculate_age
 
 map_bp = Blueprint("map", __name__)
@@ -15,26 +15,28 @@ def index():
 @map_bp.route("/users")
 @login_required
 def users_json():
-    blocked_ids = [b.blocked_id for b in Block.query.filter_by(blocker_id=current_user.id).all()]
-    blocked_by_ids = [b.blocker_id for b in Block.query.filter_by(blocked_id=current_user.id).all()]
-    exclude_ids = set(blocked_ids + blocked_by_ids + [current_user.id])
-    users = User.query.filter(
-        User.email_verified == True,
-        User.latitude.isnot(None),
-        User.longitude.isnot(None),
-        ~User.id.in_(exclude_ids)
-    ).limit(200).all()
+    rows = query_all(
+        "SELECT u.id, u.username, u.first_name, u.birth_date, u.latitude, u.longitude, "
+        "u.is_online, ui.filename AS photo "
+        "FROM users u "
+        "LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
+        "WHERE u.email_verified = true AND u.latitude IS NOT NULL AND u.longitude IS NOT NULL "
+        "AND u.id != %s "
+        "AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = %s) "
+        "AND u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = %s) "
+        "LIMIT 200",
+        (current_user.id, current_user.id, current_user.id),
+    )
     result = []
-    for u in users:
-        img = UserImage.query.filter_by(user_id=u.id, is_profile_picture=True).first()
+    for r in rows:
         result.append({
-            "id": u.id,
-            "username": u.username,
-            "first_name": u.first_name,
-            "age": calculate_age(u.birth_date),
-            "lat": u.latitude,
-            "lng": u.longitude,
-            "is_online": u.is_online,
-            "photo": img.filename if img else None,
+            "id": r["id"],
+            "username": r["username"],
+            "first_name": r["first_name"],
+            "age": calculate_age(r["birth_date"]),
+            "lat": r["latitude"],
+            "lng": r["longitude"],
+            "is_online": r["is_online"],
+            "photo": r["photo"],
         })
     return jsonify(result)

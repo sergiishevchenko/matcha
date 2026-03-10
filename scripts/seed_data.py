@@ -6,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import create_app, db, bcrypt
-from app.models import User, Tag, UserTag, Like, ProfileView
+from app import create_app, bcrypt
+from app.database import query_one, query_all, execute, execute_returning, commit
 
 FIRST_NAMES_M = [
     "James", "John", "Robert", "Michael", "David", "William", "Richard", "Joseph",
@@ -78,11 +78,11 @@ CITIES = [
 
 def create_tags():
     for tag_name in TAGS:
-        existing = Tag.query.filter_by(name=tag_name).first()
+        existing = query_one("SELECT id FROM tags WHERE name = %s", (tag_name,))
         if not existing:
-            db.session.add(Tag(name=tag_name))
-    db.session.commit()
-    return Tag.query.all()
+            execute("INSERT INTO tags (name) VALUES (%s)", (tag_name,))
+    commit()
+    return query_all("SELECT id, name FROM tags")
 
 
 def random_date(start_year=1985, end_year=2003):
@@ -106,82 +106,82 @@ def create_users(count=500):
         last_name = random.choice(LAST_NAMES)
         username = f"{first_name.lower()}{last_name.lower()}{random.randint(1, 9999)}"
         email = f"{username}@example.com"
-        if User.query.filter_by(username=username).first():
+        if query_one("SELECT id FROM users WHERE username = %s", (username,)):
             continue
-        if User.query.filter_by(email=email).first():
+        if query_one("SELECT id FROM users WHERE email = %s", (email,)):
             continue
         city = random.choice(CITIES)
         lat = city[0] + random.uniform(-0.1, 0.1)
         lon = city[1] + random.uniform(-0.1, 0.1)
-        user = User(
-            username=username,
-            email=email,
-            password_hash=password_hash,
-            first_name=first_name,
-            last_name=last_name,
-            birth_date=random_date(),
-            gender=gender,
-            sexual_preference=random.choice(["heterosexual", "homosexual", "bisexual"]),
-            biography=random.choice(BIOS),
-            latitude=lat,
-            longitude=lon,
-            location_enabled=True,
-            fame_rating=random.randint(0, 100),
-            email_verified=True,
-            is_online=random.choice([True, False]),
-            last_seen=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=random.randint(0, 10080)),
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        last_seen = now - timedelta(minutes=random.randint(0, 10080))
+        row = execute_returning(
+            "INSERT INTO users (username, email, password_hash, first_name, last_name, "
+            "birth_date, gender, sexual_preference, biography, latitude, longitude, "
+            "location_enabled, fame_rating, email_verified, is_online, last_seen) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s,true,%s,%s) RETURNING id",
+            (
+                username, email, password_hash, first_name, last_name,
+                random_date(), gender,
+                random.choice(["heterosexual", "homosexual", "bisexual"]),
+                random.choice(BIOS), lat, lon,
+                random.randint(0, 100), random.choice([True, False]), last_seen,
+            ),
         )
-        db.session.add(user)
-        users.append(user)
+        users.append({"id": row["id"], "username": username})
         if len(users) % 100 == 0:
-            db.session.commit()
+            commit()
             print(f"Created {len(users)} users...")
-    db.session.commit()
+    commit()
     print(f"Total users created: {len(users)}")
-    for user in users:
+    for u in users:
         num_tags = random.randint(2, 6)
-        selected_tags = random.sample(all_tags, num_tags)
-        for tag in selected_tags:
-            existing = UserTag.query.filter_by(user_id=user.id, tag_id=tag.id).first()
-            if not existing:
-                db.session.add(UserTag(user_id=user.id, tag_id=tag.id))
-    db.session.commit()
+        selected = random.sample(all_tags, num_tags)
+        for tag in selected:
+            execute(
+                "INSERT INTO user_tags (user_id, tag_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (u["id"], tag["id"]),
+            )
+    commit()
     print("Tags assigned to users.")
     return users
 
 
 def create_interactions(users, like_count=2000, view_count=5000):
-    user_ids = [u.id for u in users]
+    user_ids = [u["id"] for u in users]
     likes_created = 0
     for _ in range(like_count):
         liker_id = random.choice(user_ids)
         liked_id = random.choice(user_ids)
         if liker_id == liked_id:
             continue
-        existing = Like.query.filter_by(liker_id=liker_id, liked_id=liked_id).first()
+        existing = query_one(
+            "SELECT id FROM likes WHERE liker_id=%s AND liked_id=%s", (liker_id, liked_id)
+        )
         if existing:
             continue
-        db.session.add(Like(liker_id=liker_id, liked_id=liked_id))
+        execute("INSERT INTO likes (liker_id, liked_id) VALUES (%s, %s)", (liker_id, liked_id))
         likes_created += 1
         if likes_created % 500 == 0:
-            db.session.commit()
-    db.session.commit()
+            commit()
+    commit()
     print(f"Created {likes_created} likes.")
     views_created = 0
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     for _ in range(view_count):
         viewer_id = random.choice(user_ids)
         viewed_id = random.choice(user_ids)
         if viewer_id == viewed_id:
             continue
-        db.session.add(ProfileView(
-            viewer_id=viewer_id,
-            viewed_id=viewed_id,
-            viewed_at=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=random.randint(0, 43200))
-        ))
+        viewed_at = now - timedelta(minutes=random.randint(0, 43200))
+        execute(
+            "INSERT INTO profile_views (viewer_id, viewed_id, viewed_at) VALUES (%s, %s, %s)",
+            (viewer_id, viewed_id, viewed_at),
+        )
         views_created += 1
         if views_created % 1000 == 0:
-            db.session.commit()
-    db.session.commit()
+            commit()
+    commit()
     print(f"Created {views_created} profile views.")
 
 

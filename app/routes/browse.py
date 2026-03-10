@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app import db, cache
-from app.models import User, Like, Block, Report, Notification, UserImage, Tag
+from app import cache
+from app.database import query_one, query_all, execute, execute_returning, commit
 from app.utils.fame import update_user_fame
 from app.utils.matching import get_suggestions, search_users, calculate_age
 from app.utils.notifications import emit_notification
@@ -11,7 +11,9 @@ browse_bp = Blueprint("browse", __name__)
 
 @cache.cached(timeout=600, key_prefix="all_tags")
 def get_all_tags():
-    return Tag.query.order_by(Tag.name).limit(100).all()
+    from types import SimpleNamespace
+    rows = query_all("SELECT id, name FROM tags ORDER BY name LIMIT 100")
+    return [SimpleNamespace(**r) for r in rows]
 
 
 PER_PAGE = 20
@@ -38,16 +40,13 @@ def suggestions():
     start = (page - 1) * PER_PAGE
     end = start + PER_PAGE
     results = all_results[start:end]
-    my_likes = set(l.liked_id for l in Like.query.filter_by(liker_id=current_user.id).all())
+    my_likes_rows = query_all("SELECT liked_id FROM likes WHERE liker_id = %s", (current_user.id,))
+    my_likes = set(r["liked_id"] for r in my_likes_rows)
     return render_template(
         "browse/suggestions.html",
-        results=results,
-        my_likes=my_likes,
-        sort_by=sort_by,
-        filters=filters,
-        calculate_age=calculate_age,
-        page=page,
-        total_pages=total_pages,
+        results=results, my_likes=my_likes, sort_by=sort_by,
+        filters=filters, calculate_age=calculate_age,
+        page=page, total_pages=total_pages,
     )
 
 
@@ -75,19 +74,14 @@ def search():
         start = (page - 1) * PER_PAGE
         end = start + PER_PAGE
         results = all_results[start:end]
-    my_likes = set(l.liked_id for l in Like.query.filter_by(liker_id=current_user.id).all())
+    my_likes_rows = query_all("SELECT liked_id FROM likes WHERE liker_id = %s", (current_user.id,))
+    my_likes = set(r["liked_id"] for r in my_likes_rows)
     all_tags = get_all_tags()
     return render_template(
         "browse/search.html",
-        results=results,
-        my_likes=my_likes,
-        sort_by=sort_by,
-        filters=filters,
-        searched=searched,
-        all_tags=all_tags,
-        calculate_age=calculate_age,
-        page=page,
-        total_pages=total_pages,
+        results=results, my_likes=my_likes, sort_by=sort_by,
+        filters=filters, searched=searched, all_tags=all_tags,
+        calculate_age=calculate_age, page=page, total_pages=total_pages,
     )
 
 
@@ -97,37 +91,53 @@ def like(user_id):
     if user_id == current_user.id:
         flash("You cannot like yourself.", "error")
         return redirect(url_for("browse.suggestions"))
-    user = db.get_or_404(User, user_id)
+    user = query_one("SELECT id, profile_picture_id FROM users WHERE id = %s", (user_id,))
+    if not user:
+        flash("User not found.", "error")
+        return redirect(url_for("browse.suggestions"))
     if not current_user.profile_picture_id:
         flash("You need a profile picture to like someone.", "error")
         return redirect(url_for("profile.view", user_id=user_id))
-    if not user.profile_picture_id:
+    if not user["profile_picture_id"]:
         flash("You cannot like a user without a profile picture.", "error")
         return redirect(url_for("profile.view", user_id=user_id))
-    existing = Like.query.filter_by(liker_id=current_user.id, liked_id=user_id).first()
+    existing = query_one(
+        "SELECT id FROM likes WHERE liker_id=%s AND liked_id=%s", (current_user.id, user_id)
+    )
     if existing:
         flash("You already liked this user.", "error")
         return redirect(url_for("profile.view", user_id=user_id))
-    blocked = Block.query.filter_by(blocker_id=user_id, blocked_id=current_user.id).first()
-    i_blocked = Block.query.filter_by(blocker_id=current_user.id, blocked_id=user_id).first()
-    if blocked or i_blocked:
+    blocked = query_one(
+        "SELECT id FROM blocks WHERE (blocker_id=%s AND blocked_id=%s) OR (blocker_id=%s AND blocked_id=%s)",
+        (user_id, current_user.id, current_user.id, user_id),
+    )
+    if blocked:
         flash("You cannot like this user.", "error")
         return redirect(url_for("browse.suggestions"))
-    new_like = Like(liker_id=current_user.id, liked_id=user_id)
-    db.session.add(new_like)
-    they_liked = Like.query.filter_by(liker_id=user_id, liked_id=current_user.id).first()
+    execute(
+        "INSERT INTO likes (liker_id, liked_id) VALUES (%s, %s)", (current_user.id, user_id)
+    )
+    they_liked = query_one(
+        "SELECT id FROM likes WHERE liker_id=%s AND liked_id=%s", (user_id, current_user.id)
+    )
     if they_liked:
-        notif = Notification(user_id=user_id, type="match", related_user_id=current_user.id)
-        db.session.add(notif)
-        notif_me = Notification(user_id=current_user.id, type="match", related_user_id=user_id)
-        db.session.add(notif_me)
-        db.session.commit()
+        execute(
+            "INSERT INTO notifications (user_id, type, related_user_id) VALUES (%s, 'match', %s)",
+            (user_id, current_user.id),
+        )
+        execute(
+            "INSERT INTO notifications (user_id, type, related_user_id) VALUES (%s, 'match', %s)",
+            (current_user.id, user_id),
+        )
+        commit()
         emit_notification(user_id, "match", current_user)
         flash("It's a match! You can now chat.", "success")
     else:
-        notif = Notification(user_id=user_id, type="like", related_user_id=current_user.id)
-        db.session.add(notif)
-        db.session.commit()
+        execute(
+            "INSERT INTO notifications (user_id, type, related_user_id) VALUES (%s, 'like', %s)",
+            (user_id, current_user.id),
+        )
+        commit()
         emit_notification(user_id, "like", current_user)
         flash("You liked this user.", "success")
     update_user_fame(user_id)
@@ -140,17 +150,23 @@ def like(user_id):
 def unlike(user_id):
     if user_id == current_user.id:
         return redirect(url_for("browse.suggestions"))
-    existing = Like.query.filter_by(liker_id=current_user.id, liked_id=user_id).first()
+    existing = query_one(
+        "SELECT id FROM likes WHERE liker_id=%s AND liked_id=%s", (current_user.id, user_id)
+    )
     if not existing:
         flash("You have not liked this user.", "error")
         return redirect(url_for("profile.view", user_id=user_id))
-    was_match = Like.query.filter_by(liker_id=user_id, liked_id=current_user.id).first() is not None
-    db.session.delete(existing)
-    db.session.commit()
+    was_match = query_one(
+        "SELECT id FROM likes WHERE liker_id=%s AND liked_id=%s", (user_id, current_user.id)
+    ) is not None
+    execute("DELETE FROM likes WHERE liker_id=%s AND liked_id=%s", (current_user.id, user_id))
+    commit()
     if was_match:
-        notif = Notification(user_id=user_id, type="unlike", related_user_id=current_user.id)
-        db.session.add(notif)
-        db.session.commit()
+        execute(
+            "INSERT INTO notifications (user_id, type, related_user_id) VALUES (%s, 'unlike', %s)",
+            (user_id, current_user.id),
+        )
+        commit()
         emit_notification(user_id, "unlike", current_user)
     update_user_fame(user_id)
     update_user_fame(current_user.id)
@@ -163,16 +179,20 @@ def unlike(user_id):
 def block(user_id):
     if user_id == current_user.id:
         return redirect(url_for("browse.suggestions"))
-    user = db.get_or_404(User, user_id)
-    existing = Block.query.filter_by(blocker_id=current_user.id, blocked_id=user_id).first()
+    user = query_one("SELECT id FROM users WHERE id = %s", (user_id,))
+    if not user:
+        flash("User not found.", "error")
+        return redirect(url_for("browse.suggestions"))
+    existing = query_one(
+        "SELECT id FROM blocks WHERE blocker_id=%s AND blocked_id=%s", (current_user.id, user_id)
+    )
     if existing:
         flash("User already blocked.", "error")
         return redirect(url_for("browse.suggestions"))
-    new_block = Block(blocker_id=current_user.id, blocked_id=user_id)
-    db.session.add(new_block)
-    Like.query.filter_by(liker_id=current_user.id, liked_id=user_id).delete()
-    Like.query.filter_by(liker_id=user_id, liked_id=current_user.id).delete()
-    db.session.commit()
+    execute("INSERT INTO blocks (blocker_id, blocked_id) VALUES (%s, %s)", (current_user.id, user_id))
+    execute("DELETE FROM likes WHERE liker_id=%s AND liked_id=%s", (current_user.id, user_id))
+    execute("DELETE FROM likes WHERE liker_id=%s AND liked_id=%s", (user_id, current_user.id))
+    commit()
     flash("User blocked.", "success")
     return redirect(url_for("browse.suggestions"))
 
@@ -182,10 +202,15 @@ def block(user_id):
 def report(user_id):
     if user_id == current_user.id:
         return redirect(url_for("browse.suggestions"))
-    user = db.get_or_404(User, user_id)
+    user = query_one("SELECT id FROM users WHERE id = %s", (user_id,))
+    if not user:
+        flash("User not found.", "error")
+        return redirect(url_for("browse.suggestions"))
     reason = request.form.get("reason", "Reported as fake account")
-    new_report = Report(reporter_id=current_user.id, reported_id=user_id, reason=reason)
-    db.session.add(new_report)
-    db.session.commit()
+    execute(
+        "INSERT INTO reports (reporter_id, reported_id, reason) VALUES (%s, %s, %s)",
+        (current_user.id, user_id, reason),
+    )
+    commit()
     flash("User reported. Thank you.", "success")
     return redirect(url_for("browse.suggestions"))

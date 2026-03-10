@@ -1,7 +1,5 @@
 import os
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_mail import Mail
@@ -12,8 +10,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-db = SQLAlchemy()
-migrate = Migrate()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 mail = Mail()
@@ -29,8 +25,9 @@ def create_app(config_class=None):
     else:
         app.config.from_object(config_class)
 
-    db.init_app(app)
-    migrate.init_app(app, db)
+    from app.database import init_db
+    init_db(app)
+
     bcrypt.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -42,6 +39,8 @@ def create_app(config_class=None):
         "CACHE_TYPE": app.config.get("CACHE_TYPE", "SimpleCache"),
         "CACHE_DEFAULT_TIMEOUT": app.config.get("CACHE_DEFAULT_TIMEOUT", 300),
     })
+
+    from app import models as _models  # noqa: F401
 
     from app.utils.logger import setup_logger
     if not app.config.get("TESTING"):
@@ -104,5 +103,21 @@ def create_app(config_class=None):
     def uploaded_file(filename):
         from flask import send_from_directory
         return send_from_directory(app.config.get("UPLOAD_FOLDER", "./app/uploads"), filename)
+
+    import click
+
+    @app.cli.command("init-db")
+    def init_db_command():
+        from app.database import get_db, commit
+        schema_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "migrations", "schema.sql"
+        )
+        with open(schema_path) as f:
+            sql = f.read()
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute(sql)
+        commit()
+        click.echo("Database tables created.")
 
     return app

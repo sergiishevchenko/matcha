@@ -1,23 +1,21 @@
-from app import db
-from app.models import User, Like, ProfileView
+from app.database import query_one, execute, commit
 
 
 def calculate_fame_rating(user_id):
-    likes_count = Like.query.filter_by(liked_id=user_id).count()
-    views_count = ProfileView.query.filter_by(viewed_id=user_id).count()
-    connections = db.session.query(Like).filter(
-        Like.liker_id == user_id,
-        Like.liked_id.in_(
-            db.session.query(Like.liker_id).filter(Like.liked_id == user_id)
-        )
-    ).count()
-    rating = (likes_count * 10) + (views_count * 1) + (connections * 20)
+    likes = query_one("SELECT COUNT(*) AS cnt FROM likes WHERE liked_id = %s", (user_id,))
+    views = query_one("SELECT COUNT(*) AS cnt FROM profile_views WHERE viewed_id = %s", (user_id,))
+    connections = query_one(
+        "SELECT COUNT(*) AS cnt FROM likes l1 "
+        "JOIN likes l2 ON l1.liked_id = l2.liker_id AND l1.liker_id = l2.liked_id "
+        "WHERE l1.liker_id = %s",
+        (user_id,),
+    )
+    rating = (likes["cnt"] * 10) + (views["cnt"] * 1) + (connections["cnt"] * 20)
     return rating
 
 
 def update_user_fame(user_id):
-    user = db.session.get(User, user_id)
-    if user:
-        user.fame_rating = calculate_fame_rating(user_id)
-        db.session.commit()
-    return user.fame_rating if user else 0
+    rating = calculate_fame_rating(user_id)
+    execute("UPDATE users SET fame_rating = %s WHERE id = %s", (rating, user_id))
+    commit()
+    return rating

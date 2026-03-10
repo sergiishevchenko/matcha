@@ -1,54 +1,76 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from flask_socketio import emit, join_room, leave_room
-from app import db, socketio
-from app.models import User, Message, Like, Block, Notification
+from app import socketio
+from app.database import query_one, query_all, execute, execute_returning, commit
 
 chat_bp = Blueprint("chat", __name__)
 
 
 def get_matches(user_id):
-    my_likes = db.session.query(Like.liked_id).filter(Like.liker_id == user_id)
-    liked_me = db.session.query(Like.liker_id).filter(Like.liked_id == user_id)
-    match_ids = my_likes.intersect(liked_me).all()
-    match_ids = [m[0] for m in match_ids]
-    blocked_by_me = db.session.query(Block.blocked_id).filter(Block.blocker_id == user_id)
-    blocked_me = db.session.query(Block.blocker_id).filter(Block.blocked_id == user_id)
-    matches = User.query.filter(
-        User.id.in_(match_ids),
-        User.id.notin_(blocked_by_me),
-        User.id.notin_(blocked_me),
-    ).all()
-    return matches
+    rows = query_all(
+        "SELECT u.id, u.username, u.first_name, u.last_name, u.is_online, u.last_seen, "
+        "u.profile_picture_id, ui.filename AS pp_filename "
+        "FROM users u "
+        "LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
+        "WHERE u.id IN ("
+        "  SELECT l1.liked_id FROM likes l1 "
+        "  JOIN likes l2 ON l1.liker_id = l2.liked_id AND l1.liked_id = l2.liker_id "
+        "  WHERE l1.liker_id = %s"
+        ") "
+        "AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = %s) "
+        "AND u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = %s)",
+        (user_id, user_id, user_id),
+    )
+    result = []
+    for r in rows:
+        pp = SimpleNamespace(filename=r["pp_filename"]) if r.get("pp_filename") else None
+        user = SimpleNamespace(
+            id=r["id"], username=r["username"], first_name=r["first_name"],
+            last_name=r["last_name"], is_online=r["is_online"], last_seen=r["last_seen"],
+            profile_picture_id=r["profile_picture_id"], profile_picture=pp,
+        )
+        result.append(user)
+    return result
 
 
 def is_match(user1_id, user2_id):
-    like1 = Like.query.filter_by(liker_id=user1_id, liked_id=user2_id).first()
-    like2 = Like.query.filter_by(liker_id=user2_id, liked_id=user1_id).first()
-    return like1 is not None and like2 is not None
+    r = query_one(
+        "SELECT 1 FROM likes l1 JOIN likes l2 "
+        "ON l1.liker_id = l2.liked_id AND l1.liked_id = l2.liker_id "
+        "WHERE l1.liker_id = %s AND l1.liked_id = %s",
+        (user1_id, user2_id),
+    )
+    return r is not None
 
 
 def is_blocked(user1_id, user2_id):
-    b1 = Block.query.filter_by(blocker_id=user1_id, blocked_id=user2_id).first()
-    b2 = Block.query.filter_by(blocker_id=user2_id, blocked_id=user1_id).first()
-    return b1 is not None or b2 is not None
+    r = query_one(
+        "SELECT id FROM blocks WHERE "
+        "(blocker_id=%s AND blocked_id=%s) OR (blocker_id=%s AND blocked_id=%s)",
+        (user1_id, user2_id, user2_id, user1_id),
+    )
+    return r is not None
 
 
 def get_conversation(user1_id, user2_id, limit=100):
-    messages = Message.query.filter(
-        ((Message.sender_id == user1_id) & (Message.receiver_id == user2_id)) |
-        ((Message.sender_id == user2_id) & (Message.receiver_id == user1_id))
-    ).order_by(Message.created_at.desc()).limit(limit).all()
-    return list(reversed(messages))
+    rows = query_all(
+        "SELECT * FROM messages WHERE "
+        "(sender_id=%s AND receiver_id=%s) OR (sender_id=%s AND receiver_id=%s) "
+        "ORDER BY created_at DESC LIMIT %s",
+        (user1_id, user2_id, user2_id, user1_id, limit),
+    )
+    return [SimpleNamespace(**r) for r in reversed(rows)]
 
 
 def get_unread_count(user_id, from_user_id):
-    return Message.query.filter_by(
-        sender_id=from_user_id,
-        receiver_id=user_id,
-        is_read=False
-    ).count()
+    r = query_one(
+        "SELECT COUNT(*) AS cnt FROM messages WHERE sender_id=%s AND receiver_id=%s AND is_read=false",
+        (from_user_id, user_id),
+    )
+    return r["cnt"]
 
 
 @chat_bp.route("/")
@@ -58,16 +80,18 @@ def index():
     matches_data = []
     for m in matches:
         unread = get_unread_count(current_user.id, m.id)
-        last_msg = Message.query.filter(
-            ((Message.sender_id == current_user.id) & (Message.receiver_id == m.id)) |
-            ((Message.sender_id == m.id) & (Message.receiver_id == current_user.id))
-        ).order_by(Message.created_at.desc()).first()
-        matches_data.append({
-            "user": m,
-            "unread": unread,
-            "last_message": last_msg,
-        })
-    matches_data.sort(key=lambda x: x["last_message"].created_at if x["last_message"] else datetime.min, reverse=True)
+        last_msg_row = query_one(
+            "SELECT * FROM messages WHERE "
+            "(sender_id=%s AND receiver_id=%s) OR (sender_id=%s AND receiver_id=%s) "
+            "ORDER BY created_at DESC LIMIT 1",
+            (current_user.id, m.id, m.id, current_user.id),
+        )
+        last_msg = SimpleNamespace(**last_msg_row) if last_msg_row else None
+        matches_data.append({"user": m, "unread": unread, "last_message": last_msg})
+    matches_data.sort(
+        key=lambda x: x["last_message"].created_at if x["last_message"] else datetime.min,
+        reverse=True,
+    )
     return render_template("chat/index.html", matches=matches_data)
 
 
@@ -76,15 +100,28 @@ def index():
 def conversation(user_id):
     if user_id == current_user.id:
         return redirect(url_for("chat.index"))
-    other = db.get_or_404(User, user_id)
+    other_row = query_one(
+        "SELECT u.*, ui.filename AS pp_filename, ui.id AS pp_id "
+        "FROM users u LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
+        "WHERE u.id = %s",
+        (user_id,),
+    )
+    if not other_row:
+        flash("User not found.", "error")
+        return redirect(url_for("chat.index"))
+    from app.models import make_user
+    other = make_user(other_row)
     if not is_match(current_user.id, user_id):
         flash("You can only chat with your matches.", "error")
         return redirect(url_for("chat.index"))
     if is_blocked(current_user.id, user_id):
         flash("Cannot chat with this user.", "error")
         return redirect(url_for("chat.index"))
-    Message.query.filter_by(sender_id=user_id, receiver_id=current_user.id, is_read=False).update({"is_read": True})
-    db.session.commit()
+    execute(
+        "UPDATE messages SET is_read=true WHERE sender_id=%s AND receiver_id=%s AND is_read=false",
+        (user_id, current_user.id),
+    )
+    commit()
     messages = get_conversation(current_user.id, user_id)
     matches = get_matches(current_user.id)
     matches_data = []
@@ -111,18 +148,24 @@ def send_message():
         return jsonify({"success": False, "error": "Blocked"}), 403
     if len(content) > 2000:
         content = content[:2000]
-    msg = Message(sender_id=current_user.id, receiver_id=receiver_id, content=content)
-    db.session.add(msg)
-    notif = Notification(user_id=receiver_id, type="message", related_user_id=current_user.id, message_id=msg.id)
-    db.session.add(notif)
-    db.session.commit()
+    msg = execute_returning(
+        "INSERT INTO messages (sender_id, receiver_id, content) VALUES (%s, %s, %s) "
+        "RETURNING id, created_at",
+        (current_user.id, receiver_id, content),
+    )
+    execute(
+        "INSERT INTO notifications (user_id, type, related_user_id, message_id) "
+        "VALUES (%s, 'message', %s, %s)",
+        (receiver_id, current_user.id, msg["id"]),
+    )
+    commit()
     room = f"user_{receiver_id}"
     socketio.emit("new_message", {
-        "id": msg.id,
+        "id": msg["id"],
         "sender_id": current_user.id,
         "sender_name": current_user.first_name,
-        "content": msg.content,
-        "created_at": msg.created_at.strftime("%Y-%m-%d %H:%M"),
+        "content": content,
+        "created_at": msg["created_at"].strftime("%Y-%m-%d %H:%M"),
     }, room=room)
     socketio.emit("notification", {
         "type": "message",
@@ -132,9 +175,9 @@ def send_message():
     return jsonify({
         "success": True,
         "message": {
-            "id": msg.id,
-            "content": msg.content,
-            "created_at": msg.created_at.strftime("%Y-%m-%d %H:%M"),
+            "id": msg["id"],
+            "content": content,
+            "created_at": msg["created_at"].strftime("%Y-%m-%d %H:%M"),
         }
     })
 
@@ -142,43 +185,42 @@ def send_message():
 @chat_bp.route("/unread-count")
 @login_required
 def unread_count():
-    count = Message.query.filter_by(
-        receiver_id=current_user.id,
-        is_read=False
-    ).count()
-    return jsonify({"count": count})
+    r = query_one(
+        "SELECT COUNT(*) AS cnt FROM messages WHERE receiver_id=%s AND is_read=false",
+        (current_user.id,),
+    )
+    return jsonify({"count": r["cnt"]})
 
 
 @socketio.on("connect")
 def handle_connect():
-    from flask_login import current_user
-    if current_user.is_authenticated:
-        join_room(f"user_{current_user.id}")
-        current_user.is_online = True
-        current_user.last_seen = datetime.now(timezone.utc).replace(tzinfo=None)
-        db.session.commit()
+    from flask_login import current_user as cu
+    if cu.is_authenticated:
+        join_room(f"user_{cu.id}")
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        execute("UPDATE users SET is_online=true, last_seen=%s WHERE id=%s", (now, cu.id))
+        commit()
 
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    from flask_login import current_user
-    if current_user.is_authenticated:
-        leave_room(f"user_{current_user.id}")
-        current_user.is_online = False
-        current_user.last_seen = datetime.now(timezone.utc).replace(tzinfo=None)
-        db.session.commit()
+    from flask_login import current_user as cu
+    if cu.is_authenticated:
+        leave_room(f"user_{cu.id}")
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        execute("UPDATE users SET is_online=false, last_seen=%s WHERE id=%s", (now, cu.id))
+        commit()
 
 
 @socketio.on("mark_read")
 def handle_mark_read(data):
-    from flask_login import current_user
-    if not current_user.is_authenticated:
+    from flask_login import current_user as cu
+    if not cu.is_authenticated:
         return
     sender_id = data.get("sender_id")
     if sender_id:
-        Message.query.filter_by(
-            sender_id=int(sender_id),
-            receiver_id=current_user.id,
-            is_read=False
-        ).update({"is_read": True})
-        db.session.commit()
+        execute(
+            "UPDATE messages SET is_read=true WHERE sender_id=%s AND receiver_id=%s AND is_read=false",
+            (int(sender_id), cu.id),
+        )
+        commit()

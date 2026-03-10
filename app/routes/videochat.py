@@ -1,8 +1,9 @@
+from types import SimpleNamespace
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from flask_socketio import emit, join_room, leave_room
-from app import socketio, db
-from app.models import User, Like, Block
+from app import socketio
+from app.database import query_one
 
 videochat_bp = Blueprint("videochat", __name__)
 
@@ -10,16 +11,22 @@ active_calls = {}
 
 
 def are_matched(user1_id, user2_id):
-    like1 = Like.query.filter_by(liker_id=user1_id, liked_id=user2_id).first()
-    like2 = Like.query.filter_by(liker_id=user2_id, liked_id=user1_id).first()
-    return like1 is not None and like2 is not None
+    r = query_one(
+        "SELECT 1 FROM likes l1 JOIN likes l2 "
+        "ON l1.liker_id = l2.liked_id AND l1.liked_id = l2.liker_id "
+        "WHERE l1.liker_id = %s AND l1.liked_id = %s",
+        (user1_id, user2_id),
+    )
+    return r is not None
 
 
-def is_blocked(user1_id, user2_id):
-    return Block.query.filter(
-        ((Block.blocker_id == user1_id) & (Block.blocked_id == user2_id)) |
-        ((Block.blocker_id == user2_id) & (Block.blocked_id == user1_id))
-    ).first() is not None
+def _is_blocked(user1_id, user2_id):
+    r = query_one(
+        "SELECT id FROM blocks WHERE "
+        "(blocker_id=%s AND blocked_id=%s) OR (blocker_id=%s AND blocked_id=%s)",
+        (user1_id, user2_id, user2_id, user1_id),
+    )
+    return r is not None
 
 
 @videochat_bp.route("/call/<int:user_id>")
@@ -28,15 +35,30 @@ def call(user_id):
     if user_id == current_user.id:
         flash("You cannot call yourself.", "error")
         return redirect(url_for("chat.index"))
-    user = db.get_or_404(User, user_id)
-    if is_blocked(current_user.id, user_id):
+    user_row = query_one(
+        "SELECT u.id, u.username, u.first_name, u.last_name, u.is_online, "
+        "ui.filename AS pp_filename "
+        "FROM users u LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
+        "WHERE u.id = %s",
+        (user_id,),
+    )
+    if not user_row:
+        flash("User not found.", "error")
+        return redirect(url_for("chat.index"))
+    if _is_blocked(current_user.id, user_id):
         flash("Cannot call this user.", "error")
         return redirect(url_for("chat.index"))
     if not are_matched(current_user.id, user_id):
         flash("You can only call matched users.", "error")
         return redirect(url_for("chat.index"))
+    pp = SimpleNamespace(filename=user_row["pp_filename"]) if user_row.get("pp_filename") else None
+    other_user = SimpleNamespace(
+        id=user_row["id"], username=user_row["username"],
+        first_name=user_row["first_name"], last_name=user_row["last_name"],
+        is_online=user_row["is_online"], profile_picture=pp,
+    )
     room_id = f"call_{min(current_user.id, user_id)}_{max(current_user.id, user_id)}"
-    return render_template("videochat/call.html", other_user=user, room_id=room_id)
+    return render_template("videochat/call.html", other_user=other_user, room_id=room_id)
 
 
 @socketio.on("join_call")
@@ -87,7 +109,7 @@ def handle_call_request(data):
     emit("incoming_call", {
         "caller_id": caller_id,
         "caller_name": caller_name,
-        "room": room
+        "room": room,
     }, room=f"user_{target_user_id}")
 
 

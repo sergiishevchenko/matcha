@@ -1,9 +1,8 @@
-import os
-from flask import Blueprint, redirect, url_for, flash, current_app, session
+from flask import Blueprint, redirect, url_for, flash, current_app
 from flask_login import login_user
 from authlib.integrations.flask_client import OAuth
-from app import db
-from app.models import User
+from app.database import query_one, execute_returning, execute, commit
+from app.models import make_user
 
 oauth_bp = Blueprint("oauth", __name__)
 
@@ -40,41 +39,50 @@ def google_callback():
         flash("Google OAuth is not configured.", "error")
         return redirect(url_for("auth.login"))
     try:
-        token = oauth.google.authorize_access_token()
+        oauth.google.authorize_access_token()
         resp = oauth.google.get("userinfo")
         user_info = resp.json()
-    except Exception as e:
+    except Exception:
         flash("OAuth authentication failed.", "error")
         return redirect(url_for("auth.login"))
     email = user_info.get("email")
     if not email:
         flash("Could not get email from Google.", "error")
         return redirect(url_for("auth.login"))
-    user = User.query.filter_by(email=email).first()
-    if user:
+    row = query_one(
+        "SELECT u.*, ui.filename AS pp_filename, ui.id AS pp_id "
+        "FROM users u LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
+        "WHERE u.email = %s",
+        (email,),
+    )
+    if row:
+        user = make_user(row)
         login_user(user)
-        user.is_online = True
-        db.session.commit()
+        execute("UPDATE users SET is_online = true WHERE id = %s", (user.id,))
+        commit()
         flash("Logged in with Google.", "success")
         return redirect(url_for("browse.suggestions"))
     google_id = user_info.get("id")
     first_name = user_info.get("given_name", "User")
     last_name = user_info.get("family_name", "")
     username = email.split("@")[0]
-    existing = User.query.filter_by(username=username).first()
+    existing = query_one("SELECT id FROM users WHERE username = %s", (username,))
     if existing:
         username = f"{username}_{google_id[:6]}"
-    user = User(
-        username=username,
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        password_hash="oauth_google",
-        email_verified=True,
-        is_online=True
+    new_row = execute_returning(
+        "INSERT INTO users (username, email, first_name, last_name, password_hash, "
+        "email_verified, is_online) VALUES (%s, %s, %s, %s, 'oauth_google', true, true) "
+        "RETURNING id",
+        (username, email, first_name, last_name),
     )
-    db.session.add(user)
-    db.session.commit()
+    commit()
+    user_row = query_one(
+        "SELECT u.*, ui.filename AS pp_filename, ui.id AS pp_id "
+        "FROM users u LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
+        "WHERE u.id = %s",
+        (new_row["id"],),
+    )
+    user = make_user(user_row)
     login_user(user)
     flash("Account created with Google. Please complete your profile.", "success")
     return redirect(url_for("profile.edit"))
