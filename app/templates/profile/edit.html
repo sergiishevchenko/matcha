@@ -9,7 +9,10 @@
         <div class="images-grid" id="images-sortable">
             {% for img in images %}
             <div class="image-card {% if img.is_profile_picture %}is-profile{% endif %}" data-id="{{ img.id }}">
-                <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo" class="sortable-handle">
+                <div class="image-thumb sortable-handle">
+                    <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo" onerror="this.style.display='none'; this.closest('.image-card').classList.add('image-failed');">
+                    <div class="image-fallback">Photo unavailable</div>
+                </div>
                 <div class="image-actions">
                     {% if not img.is_profile_picture %}
                     <form method="post" action="{{ url_for('profile.set_profile_picture', image_id=img.id) }}">
