@@ -31,7 +31,8 @@
     {% endif %}
     <p class="form-links">
         <a href="{{ url_for('auth.register') }}">Create an account</a><br>
-        <a href="{{ url_for('auth.reset_password_request') }}">Forgot password?</a>
+        <a href="{{ url_for('auth.reset_password_request') }}">Forgot password?</a><br>
+        <a href="{{ url_for('auth.resend_verification') }}">Resend verification email</a>
     </p>
 </div>
 {% endblock %}

@@ -109,6 +109,39 @@ class TestLogin:
         assert b"Invalid username or password" in response.data
 
 
+class TestResendVerification:
+    def test_resend_verification_page_loads(self, client):
+        response = client.get("/auth/resend-verification")
+        assert response.status_code == 200
+        assert b"Resend verification" in response.data
+
+    def test_resend_verification_generates_token(self, client, app):
+        with app.app_context():
+            user = User(
+                username="unverifieduser",
+                email="unverified@example.com",
+                password_hash="dummy-hash",
+                first_name="Unverified",
+                last_name="User",
+                email_verified=False,
+                gender="male",
+                biography="Test biography",
+            )
+            db.session.add(user)
+            db.session.commit()
+            user_id = user.id
+
+        response = client.post("/auth/resend-verification", data={
+            "email": "unverified@example.com",
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        assert b"If an unverified account exists with that email" in response.data
+
+        with app.app_context():
+            updated_user = db.session.get(User, user_id)
+            assert updated_user.verification_token is not None
+
+
 class TestLogout:
     def test_logout(self, logged_in_client):
         response = logged_in_client.get("/auth/logout", follow_redirects=True)

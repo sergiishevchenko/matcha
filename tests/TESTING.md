@@ -93,6 +93,8 @@ Tests for user authentication flows.
 | | `test_login_success` | Valid credentials log in user |
 | | `test_login_wrong_password` | Wrong password shows error |
 | | `test_login_nonexistent_user` | Nonexistent user shows error |
+| `TestResendVerification` | `test_resend_verification_page_loads` | Resend verification page returns 200 |
+| | `test_resend_verification_generates_token` | Unverified user receives new verification token |
 | `TestLogout` | `test_logout` | Logout redirects and shows message |
 
 ### test_utils.py

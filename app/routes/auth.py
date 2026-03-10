@@ -83,6 +83,28 @@ def verify_email(token):
     return redirect(url_for("auth.login"))
 
 
+@auth_bp.route("/resend-verification", methods=["GET", "POST"])
+def resend_verification():
+    if current_user.is_authenticated:
+        return redirect(url_for("browse.suggestions"))
+    if request.method != "POST":
+        return render_template("auth/resend_verification.html")
+    email = sanitize_string(request.form.get("email"), 120)
+    if not email:
+        flash("Email is required.", "error")
+        return render_template("auth/resend_verification.html")
+    user = User.query.filter_by(email=email).first()
+    if user and not user.email_verified:
+        user.verification_token = secrets.token_urlsafe(32)
+        db.session.commit()
+        try:
+            send_verification_email(user, user.verification_token)
+        except Exception:
+            pass
+    flash("If an unverified account exists with that email, a verification link has been sent.", "success")
+    return redirect(url_for("auth.login"))
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -100,7 +122,7 @@ def login():
         flash("Invalid username or password.", "error")
         return render_template("auth/login.html")
     if not user.email_verified:
-        flash("Please verify your email before logging in.", "error")
+        flash("Please verify your email before logging in. You can request a new verification email.", "error")
         return render_template("auth/login.html")
     login_user(user)
     log_auth("login", username, success=True)
