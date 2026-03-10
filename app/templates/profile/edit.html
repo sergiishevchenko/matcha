@@ -69,7 +69,7 @@
         <h2>Basic Info</h2>
         <form method="post" action="{{ url_for('profile.edit') }}" class="profile-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-row">
+            <div class="form-row basic-row-2">
                 <div class="form-group">
                     <label for="first_name">First name</label>
                     <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
@@ -79,15 +79,17 @@
                     <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
                 </div>
             </div>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            <div class="form-row basic-row-2">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="birth_date">Birth date</label>
+                    <input type="date" id="birth_date" name="birth_date" value="{{ user.birth_date.strftime('%Y-%m-%d') if user.birth_date else '' }}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="birth_date">Birth date</label>
-                <input type="date" id="birth_date" name="birth_date" value="{{ user.birth_date.strftime('%Y-%m-%d') if user.birth_date else '' }}">
-            </div>
-            <div class="form-row">
+            <div class="form-row basic-row-2">
                 <div class="form-group">
                     <label for="gender">Gender</label>
                     <select id="gender" name="gender">
@@ -107,16 +109,16 @@
                     </select>
                 </div>
             </div>
-            <div class="form-group">
+            <div class="form-group biography-group">
                 <label for="biography">About me</label>
                 <textarea id="biography" name="biography" rows="4" maxlength="2000">{{ user.biography or '' }}</textarea>
             </div>
-            <div class="form-group">
+            <div class="form-group tags-group">
                 <label for="tags">Interests (comma-separated)</label>
                 <input type="text" id="tags" name="tags" value="{{ tags|join(', ') }}" placeholder="music, travel, coding">
                 <p class="hint">Add up to 10 tags to describe your interests.</p>
             </div>
-            <button type="submit" class="btn">Save changes</button>
+            <button type="submit" class="btn btn-block">Save changes</button>
         </form>
     </section>
 
@@ -144,16 +146,33 @@
                     <input type="number" id="manual-lng" step="0.0001" min="-180" max="180" value="{{ user.longitude or '' }}">
                 </div>
             </div>
-            <button type="button" id="btn-save-location" class="btn btn-small">Save location</button>
+            <button type="button" id="btn-save-location" class="btn">Save location</button>
         </div>
         <p id="location-status" class="hint"></p>
     </section>
 
     <section class="profile-section">
         <h2>Stats</h2>
-        <p>Fame rating: <strong>{{ user.fame_rating }}</strong></p>
-        <p><a href="{{ url_for('profile.visitors') }}">View who visited your profile</a></p>
-        <p><a href="{{ url_for('profile.likes') }}">View who liked you</a></p>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <p class="stat-label">Fame rating</p>
+                <p class="stat-value">{{ user.fame_rating }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-label">Profile status</p>
+                <p class="stat-value stat-value-small">
+                    {% if user.email_verified %}
+                    Verified
+                    {% else %}
+                    Unverified
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="stats-actions">
+            <a href="{{ url_for('profile.visitors') }}" class="btn btn-secondary">Who visited me</a>
+            <a href="{{ url_for('profile.likes') }}" class="btn">Who liked me</a>
+        </div>
     </section>
 </div>
 {% endblock %}
