@@ -1,6 +1,5 @@
 import pytest
-from app import db
-from app.models import User
+from app.database import query_one, execute, execute_returning, commit
 
 
 class TestRegister:
@@ -20,9 +19,9 @@ class TestRegister:
         }, follow_redirects=True)
         assert response.status_code == 200
         with app.app_context():
-            user = User.query.filter_by(username="newuser").first()
-            assert user is not None
-            assert user.email == "newuser@example.com"
+            row = query_one("SELECT email FROM users WHERE username = %s", ("newuser",))
+            assert row is not None
+            assert row["email"] == "newuser@example.com"
 
     def test_register_password_mismatch(self, client):
         response = client.post("/auth/register", data={
@@ -117,19 +116,14 @@ class TestResendVerification:
 
     def test_resend_verification_generates_token(self, client, app):
         with app.app_context():
-            user = User(
-                username="unverifieduser",
-                email="unverified@example.com",
-                password_hash="dummy-hash",
-                first_name="Unverified",
-                last_name="User",
-                email_verified=False,
-                gender="male",
-                biography="Test biography",
+            row = execute_returning(
+                "INSERT INTO users (username, email, password_hash, first_name, last_name, "
+                "email_verified, gender, biography) "
+                "VALUES (%s, %s, %s, %s, %s, false, 'male', 'Test biography') RETURNING id",
+                ("unverifieduser", "unverified@example.com", "dummy-hash", "Unverified", "User"),
             )
-            db.session.add(user)
-            db.session.commit()
-            user_id = user.id
+            commit()
+            user_id = row["id"]
 
         response = client.post("/auth/resend-verification", data={
             "email": "unverified@example.com",
@@ -138,8 +132,10 @@ class TestResendVerification:
         assert b"If an unverified account exists with that email" in response.data
 
         with app.app_context():
-            updated_user = db.session.get(User, user_id)
-            assert updated_user.verification_token is not None
+            updated = query_one(
+                "SELECT verification_token FROM users WHERE id = %s", (user_id,)
+            )
+            assert updated["verification_token"] is not None
 
 
 class TestLogout:

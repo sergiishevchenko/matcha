@@ -1,12 +1,23 @@
+import os
 import pytest
-from app import create_app, db, bcrypt
-from app.models import User, UserImage, Tag, UserTag, Like, Block, Message, Notification
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from app import create_app, bcrypt
+from app.database import get_db, commit, execute, execute_returning, rollback
+
+
+def _test_db_url():
+    base = os.environ.get("DATABASE_URL", "postgresql://localhost/matcha_db")
+    parts = base.rsplit("/", 1)
+    return parts[0] + "/matcha_test"
 
 
 class TestConfig:
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    DATABASE_URL = _test_db_url()
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SECRET_KEY = "test-secret-key"
     WTF_CSRF_ENABLED = False
     UPLOAD_FOLDER = "/tmp/test_uploads"
@@ -17,10 +28,31 @@ class TestConfig:
 def app():
     application = create_app(TestConfig)
     with application.app_context():
-        db.create_all()
+        conn = get_db()
+        schema_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "migrations", "schema.sql",
+        )
+        with open(schema_path) as f:
+            sql = f.read()
+        with conn.cursor() as cur:
+            cur.execute(sql)
+        commit()
         yield application
-        db.session.remove()
-        db.drop_all()
+        try:
+            rollback()
+        except Exception:
+            pass
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute(
+                "DROP TABLE IF EXISTS events, notifications, messages, reports, "
+                "blocks, profile_views, likes, user_tags, tags CASCADE"
+            )
+            cur.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_profile_picture")
+            cur.execute("DROP TABLE IF EXISTS user_images CASCADE")
+            cur.execute("DROP TABLE IF EXISTS users CASCADE")
+        commit()
 
 
 @pytest.fixture
@@ -37,48 +69,44 @@ def runner(app):
 def user(app):
     with app.app_context():
         password_hash = bcrypt.generate_password_hash("Test1234!").decode("utf-8")
-        u = User(
-            username="testuser",
-            email="test@example.com",
-            password_hash=password_hash,
-            first_name="Test",
-            last_name="User",
-            email_verified=True,
-            gender="male",
-            biography="Test biography",
+        row = execute_returning(
+            "INSERT INTO users (username, email, password_hash, first_name, last_name, "
+            "email_verified, gender, biography) "
+            "VALUES (%s, %s, %s, %s, %s, true, 'male', 'Test biography') RETURNING id",
+            ("testuser", "test@example.com", password_hash, "Test", "User"),
         )
-        db.session.add(u)
-        db.session.flush()
-        img = UserImage(user_id=u.id, filename="test.jpg")
-        db.session.add(img)
-        db.session.flush()
-        u.profile_picture_id = img.id
-        db.session.commit()
-        return u.id
+        img = execute_returning(
+            "INSERT INTO user_images (user_id, filename) VALUES (%s, %s) RETURNING id",
+            (row["id"], "test.jpg"),
+        )
+        execute(
+            "UPDATE users SET profile_picture_id = %s WHERE id = %s",
+            (img["id"], row["id"]),
+        )
+        commit()
+        return row["id"]
 
 
 @pytest.fixture
 def user2(app):
     with app.app_context():
         password_hash = bcrypt.generate_password_hash("Test1234!").decode("utf-8")
-        u = User(
-            username="testuser2",
-            email="test2@example.com",
-            password_hash=password_hash,
-            first_name="Test2",
-            last_name="User2",
-            email_verified=True,
-            gender="female",
-            biography="Test2 biography",
+        row = execute_returning(
+            "INSERT INTO users (username, email, password_hash, first_name, last_name, "
+            "email_verified, gender, biography) "
+            "VALUES (%s, %s, %s, %s, %s, true, 'female', 'Test2 biography') RETURNING id",
+            ("testuser2", "test2@example.com", password_hash, "Test2", "User2"),
         )
-        db.session.add(u)
-        db.session.flush()
-        img = UserImage(user_id=u.id, filename="test2.jpg")
-        db.session.add(img)
-        db.session.flush()
-        u.profile_picture_id = img.id
-        db.session.commit()
-        return u.id
+        img = execute_returning(
+            "INSERT INTO user_images (user_id, filename) VALUES (%s, %s) RETURNING id",
+            (row["id"], "test2.jpg"),
+        )
+        execute(
+            "UPDATE users SET profile_picture_id = %s WHERE id = %s",
+            (img["id"], row["id"]),
+        )
+        commit()
+        return row["id"]
 
 
 @pytest.fixture
