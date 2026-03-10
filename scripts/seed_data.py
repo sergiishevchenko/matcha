@@ -2,7 +2,13 @@
 import os
 import sys
 import random
+import uuid
+import argparse
+import io
+import urllib.request
+import ssl
 from datetime import datetime, timedelta, timezone
+from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -73,6 +79,12 @@ CITIES = [
     (46.8499, 9.5329),
     (47.4245, 9.3767),
     (46.2018, 6.1466),
+]
+
+
+AVATAR_COLORS = [
+    "#5b6cff", "#7c3aed", "#0891b2", "#2563eb", "#0f766e",
+    "#15803d", "#c2410c", "#b91c1c", "#9333ea", "#1d4ed8",
 ]
 
 
@@ -147,6 +159,115 @@ def create_users(count=500):
     return users
 
 
+def create_avatar_file(filepath, initials, color):
+    image = Image.new("RGB", (512, 512), color=color)
+    draw = ImageDraw.Draw(image)
+    try:
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 180)
+    except Exception:
+        font = ImageFont.load_default()
+    bbox = draw.textbbox((0, 0), initials, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    x = (512 - text_width) / 2
+    y = (512 - text_height) / 2 - 8
+    draw.text((x, y), initials, fill="white", font=font)
+    image.save(filepath, "PNG", optimize=True)
+
+
+def create_profile_images_for_users():
+    from flask import current_app
+    users_without_images = query_all(
+        "SELECT id, first_name, last_name FROM users "
+        "WHERE id NOT IN (SELECT user_id FROM user_images)"
+    )
+    if not users_without_images:
+        print("No users without images found.")
+        return 0
+    upload_folder = current_app.config.get("UPLOAD_FOLDER", "./app/uploads")
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    created = 0
+    for row in users_without_images:
+        first = (row["first_name"] or "").strip()
+        last = (row["last_name"] or "").strip()
+        initials = ((first[:1] or "U") + (last[:1] or "")).upper()
+        color = AVATAR_COLORS[row["id"] % len(AVATAR_COLORS)]
+        filename = f"{uuid.uuid4().hex}.png"
+        filepath = os.path.join(upload_folder, filename)
+        create_avatar_file(filepath, initials, color)
+        image_row = execute_returning(
+            "INSERT INTO user_images (user_id, filename, is_profile_picture, upload_order) "
+            "VALUES (%s, %s, true, 0) RETURNING id",
+            (row["id"], filename),
+        )
+        execute(
+            "UPDATE users SET profile_picture_id = %s WHERE id = %s",
+            (image_row["id"], row["id"]),
+        )
+        created += 1
+        if created % 100 == 0:
+            commit()
+            print(f"Created {created} profile images...")
+    commit()
+    print(f"Total profile images created: {created}")
+    return created
+
+
+def assign_real_photos_to_seeded_users():
+    from flask import current_app
+    users = query_all(
+        "SELECT u.id, u.gender, u.profile_picture_id, ui.filename "
+        "FROM users u "
+        "LEFT JOIN user_images ui ON ui.id = u.profile_picture_id "
+        "WHERE u.email LIKE %s "
+        "ORDER BY u.id",
+        ("%@example.com",),
+    )
+    if not users:
+        print("No seeded users found for real photo assignment.")
+        return 0
+    upload_folder = current_app.config.get("UPLOAD_FOLDER", "./app/uploads")
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    updated = 0
+    ssl_context = ssl._create_unverified_context()
+    for idx, row in enumerate(users):
+        photo_idx = (row["id"] + idx) % 100
+        if row["gender"] == "female":
+            source_url = f"https://randomuser.me/api/portraits/women/{photo_idx}.jpg"
+        else:
+            source_url = f"https://randomuser.me/api/portraits/men/{photo_idx}.jpg"
+        try:
+            with urllib.request.urlopen(source_url, timeout=10, context=ssl_context) as resp:
+                data = resp.read()
+            img = Image.open(io.BytesIO(data)).convert("RGB")
+        except Exception:
+            continue
+        filename = row["filename"]
+        if not filename:
+            filename = f"{uuid.uuid4().hex}.jpg"
+            image_row = execute_returning(
+                "INSERT INTO user_images (user_id, filename, is_profile_picture, upload_order) "
+                "VALUES (%s, %s, true, 0) RETURNING id",
+                (row["id"], filename),
+            )
+            execute(
+                "UPDATE users SET profile_picture_id = %s WHERE id = %s",
+                (image_row["id"], row["id"]),
+            )
+        filepath = os.path.join(upload_folder, filename)
+        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+        img.save(filepath, quality=90, optimize=True)
+        updated += 1
+        if updated % 100 == 0:
+            commit()
+            print(f"Assigned {updated} real profile photos...")
+    commit()
+    print(f"Total seeded users with real photos: {updated}")
+    return updated
+
+
 def create_interactions(users, like_count=2000, view_count=5000):
     user_ids = [u["id"] for u in users]
     likes_created = 0
@@ -186,12 +307,27 @@ def create_interactions(users, like_count=2000, view_count=5000):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--images-only", action="store_true")
+    parser.add_argument("--real-photos", action="store_true")
+    args = parser.parse_args()
     app = create_app()
     with app.app_context():
+        if args.real_photos:
+            print("Assigning real photos to seeded users...")
+            assign_real_photos_to_seeded_users()
+            print("Real photo assignment complete!")
+            return
+        if args.images_only:
+            print("Generating profile images for existing users...")
+            create_profile_images_for_users()
+            print("Image generation complete!")
+            return
         print("Starting seed data generation...")
         users = create_users(500)
         if users:
             create_interactions(users)
+        create_profile_images_for_users()
         print("Seed data generation complete!")
 
 
