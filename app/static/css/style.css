@@ -1473,6 +1473,54 @@ body {
     border-color: #bbb;
 }
 
+.oauth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.btn-oauth {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    font-weight: 600;
+}
+
+.oauth-icon {
+    margin-right: 8px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.oauth-icon-42 {
+    width: 18px;
+    height: 18px;
+}
+
+.btn-github {
+    background: #111827;
+    color: #ffffff;
+    border: 1px solid #111827;
+}
+
+.btn-github:hover {
+    background: #0b1220;
+    border-color: #0b1220;
+}
+
+.btn-intra42 {
+    background: #00babc;
+    color: #ffffff;
+    border: 1px solid #00babc;
+}
+
+.btn-intra42:hover {
+    background: #00a8aa;
+    border-color: #00a8aa;
+}
+
 .map-page {
     max-width: 1200px;
     margin: 0 auto;

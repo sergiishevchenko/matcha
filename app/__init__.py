@@ -74,7 +74,11 @@ def create_app(config_class=None):
     app.register_blueprint(events_bp, url_prefix="/events")
     app.register_blueprint(videochat_bp, url_prefix="/videochat")
 
-    if app.config.get("GOOGLE_CLIENT_ID"):
+    if (
+        app.config.get("GOOGLE_CLIENT_ID")
+        or app.config.get("GITHUB_CLIENT_ID")
+        or app.config.get("INTRA42_CLIENT_ID")
+    ):
         init_oauth(app)
 
     @app.before_request

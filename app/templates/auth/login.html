@@ -15,12 +15,14 @@
         </div>
         <button type="submit" class="btn btn-block">Login</button>
     </form>
-    {% if config.GOOGLE_CLIENT_ID %}
+    {% if config.GOOGLE_CLIENT_ID or config.GITHUB_CLIENT_ID or config.INTRA42_CLIENT_ID %}
     <div class="oauth-divider">
         <span>or</span>
     </div>
+    <div class="oauth-buttons">
+    {% if config.GOOGLE_CLIENT_ID %}
     <a href="{{ url_for('oauth.google_login') }}" class="btn btn-google btn-block">
-        <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:8px;vertical-align:middle;">
+        <svg class="oauth-icon" viewBox="0 0 24 24" width="18" height="18">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -28,6 +30,27 @@
         </svg>
         Continue with Google
     </a>
+    {% endif %}
+    {% if config.GITHUB_CLIENT_ID %}
+    <a href="{{ url_for('oauth.github_login') }}" class="btn btn-oauth btn-github btn-block">
+        <svg class="oauth-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 .5C5.65.5.5 5.66.5 12.03c0 5.1 3.3 9.42 7.88 10.95.58.1.79-.26.79-.57 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.78 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.56-2.56-.29-5.24-1.29-5.24-5.72 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.47.11-3.07 0 0 .98-.31 3.2 1.18a11.06 11.06 0 0 1 5.82 0c2.22-1.5 3.2-1.18 3.2-1.18.63 1.6.23 2.78.11 3.07.74.81 1.19 1.84 1.19 3.1 0 4.44-2.69 5.43-5.26 5.71.41.36.78 1.07.78 2.16 0 1.56-.01 2.82-.01 3.2 0 .31.2.68.8.57A11.55 11.55 0 0 0 23.5 12.03C23.5 5.66 18.35.5 12 .5z"/>
+        </svg>
+        Continue with GitHub
+    </a>
+    {% endif %}
+    {% if config.INTRA42_CLIENT_ID %}
+    <a href="{{ url_for('oauth.intra42_login') }}" class="btn btn-oauth btn-intra42 btn-block">
+        <svg class="oauth-icon oauth-icon-42" viewBox="0 -200 960 960" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <polygon points="32,412.6 362.1,412.6 362.1,578 526.8,578 526.8,279.1 197.3,279.1 526.8,-51.1 362.1,-51.1 32,279.1"/>
+            <polygon points="597.9,114.2 762.7,-51.1 597.9,-51.1"/>
+            <polygon points="762.7,114.2 597.9,279.1 597.9,443.9 762.7,443.9 762.7,279.1 928,114.2 928,-51.1 762.7,-51.1"/>
+            <polygon points="928,279.1 762.7,443.9 928,443.9"/>
+        </svg>
+        Continue with 42 Intra
+    </a>
+    {% endif %}
+    </div>
     {% endif %}
     <p class="form-links">
         <a href="{{ url_for('auth.register') }}">Create an account</a><br>
