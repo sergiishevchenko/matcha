@@ -1,59 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Search - Matcha{% endblock %}
 {% block content %}
-<div class="browse-page">
+<div class="browse-page suggestions-page">
     <h1>Search</h1>
 
-    <div class="browse-controls">
-        <form method="get" action="{{ url_for('browse.search') }}" class="filter-form">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label>Age</label>
-                    <input type="number" name="age_min" placeholder="Min" value="{{ filters.get('age_min', '') }}" min="18" max="99">
-                    <span>-</span>
-                    <input type="number" name="age_max" placeholder="Max" value="{{ filters.get('age_max', '') }}" min="18" max="99">
+    <form method="get" action="{{ url_for('browse.search') }}" class="sf sf-search">
+        <div class="sf-body">
+            <div class="sf-filters">
+                <div class="sf-row sf-row-search-top">
+                    <label class="sf-field sf-field-range">
+                        <span>Age</span>
+                        <div class="sf-range">
+                            <input type="number" name="age_min" placeholder="from" value="{{ filters.get('age_min', '') }}" min="18" max="99">
+                            <em>&ndash;</em>
+                            <input type="number" name="age_max" placeholder="to" value="{{ filters.get('age_max', '') }}" min="18" max="99">
+                        </div>
+                    </label>
+                    <label class="sf-field sf-field-range">
+                        <span>Fame</span>
+                        <div class="sf-range">
+                            <input type="number" name="fame_min" placeholder="from" value="{{ filters.get('fame_min', '') }}" min="0">
+                            <em>&ndash;</em>
+                            <input type="number" name="fame_max" placeholder="to" value="{{ filters.get('fame_max', '') }}" min="0">
+                        </div>
+                    </label>
+                    <label class="sf-field sf-field-single">
+                        <span>Distance</span>
+                        <input type="number" name="location_max" placeholder="max km" value="{{ filters.get('location_max', '') }}" min="1">
+                    </label>
+                    <label class="sf-field sf-field-single">
+                        <span>Sort</span>
+                        <select name="sort">
+                            <option value="score" {% if sort_by == 'score' %}selected{% endif %}>Best match</option>
+                            <option value="age" {% if sort_by == 'age' %}selected{% endif %}>Age</option>
+                            <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Distance</option>
+                            <option value="fame" {% if sort_by == 'fame' %}selected{% endif %}>Fame rating</option>
+                            <option value="tags" {% if sort_by == 'tags' %}selected{% endif %}>Common tags</option>
+                        </select>
+                    </label>
                 </div>
-                <div class="filter-group">
-                    <label>Fame</label>
-                    <input type="number" name="fame_min" placeholder="Min" value="{{ filters.get('fame_min', '') }}" min="0">
-                    <span>-</span>
-                    <input type="number" name="fame_max" placeholder="Max" value="{{ filters.get('fame_max', '') }}" min="0">
-                </div>
-                <div class="filter-group">
-                    <label>Distance (km)</label>
-                    <input type="number" name="location_max" placeholder="Max km" value="{{ filters.get('location_max', '') }}" min="1">
+                <div class="sf-row sf-row-search-bottom">
+                    <label class="sf-field sf-field-grow sf-field-tags">
+                        <span>Tags</span>
+                        <div class="sf-tags-wrap">
+                            <input type="text" name="tags" placeholder="music, travel, coding" value="{{ filters.get('tags', '') }}">
+                            {% if all_tags %}
+                            <div class="popular-tags search-popular-tags">
+                                <strong class="popular-tags-label">Popular tags:</strong>
+                                {% for tag in all_tags[:20] %}
+                                <button type="button" class="tag-btn" data-tag="{{ tag.name }}">#{{ tag.name }}</button>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </label>
                 </div>
             </div>
-            <div class="filter-row">
-                <div class="filter-group filter-wide">
-                    <label>Tags (comma-separated)</label>
-                    <input type="text" name="tags" placeholder="music, travel, coding" value="{{ filters.get('tags', '') }}">
-                </div>
-            </div>
-            {% if all_tags %}
-            <div class="popular-tags">
-                <span>Popular tags:</span>
-                {% for tag in all_tags[:20] %}
-                <button type="button" class="tag-btn" data-tag="{{ tag.name }}">#{{ tag.name }}</button>
-                {% endfor %}
-            </div>
-            {% endif %}
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label>Sort by</label>
-                    <select name="sort">
-                        <option value="score" {% if sort_by == 'score' %}selected{% endif %}>Best match</option>
-                        <option value="age" {% if sort_by == 'age' %}selected{% endif %}>Age</option>
-                        <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Distance</option>
-                        <option value="fame" {% if sort_by == 'fame' %}selected{% endif %}>Fame rating</option>
-                        <option value="tags" {% if sort_by == 'tags' %}selected{% endif %}>Common tags</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn">Search</button>
-                <a href="{{ url_for('browse.search') }}" class="btn btn-secondary">Reset</a>
-            </div>
-        </form>
-    </div>
+        </div>
+        <div class="sf-actions-below">
+            <button type="submit" class="btn sf-btn">Search</button>
+            <a href="{{ url_for('browse.search') }}" class="btn sf-btn sf-btn-reset">Reset</a>
+        </div>
+    </form>
 
     {% if searched %}
         {% if results %}
