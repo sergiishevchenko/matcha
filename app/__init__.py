@@ -7,6 +7,7 @@ from flask_socketio import SocketIO
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
 from dotenv import load_dotenv
+from werkzeug.exceptions import RequestEntityTooLarge
 
 load_dotenv()
 
@@ -111,6 +112,19 @@ def create_app(config_class=None):
     def uploaded_file(filename):
         from flask import send_from_directory
         return send_from_directory(app.config.get("UPLOAD_FOLDER", "./app/uploads"), filename)
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def handle_file_too_large(e):
+        # When MAX_CONTENT_LENGTH is exceeded, Flask rejects the request before our route runs.
+        # Redirect back with a clear message instead of showing a generic 413 page.
+        from flask import flash, redirect, url_for
+        limit = app.config.get("MAX_CONTENT_LENGTH")
+        if isinstance(limit, int) and limit > 0:
+            mb = limit / (1024 * 1024)
+            flash(f"File too large. Maximum upload size is {mb:.1f}MB.", "error")
+        else:
+            flash("File too large.", "error")
+        return redirect(url_for("profile.edit"))
 
     import click
 

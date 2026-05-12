@@ -4,6 +4,8 @@ from PIL import Image
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_MIME_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp"}
+# Pillow format names (lowercase). MPO = multi-picture JPEG; phones often use .jpg for these.
+ALLOWED_PIL_FORMATS = {"png", "jpeg", "gif", "webp", "mpo"}
 MAX_IMAGE_SIZE = (1200, 1200)
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -27,16 +29,23 @@ def save_image(file, upload_folder):
         img.verify()
         file.seek(0)
         img = Image.open(file)
-        if img.format.lower() not in {"png", "jpeg", "gif", "webp"}:
-            return None, "Invalid image format."
+        fmt = (img.format or "").lower()
+        if fmt not in ALLOWED_PIL_FORMATS:
+            return None, (
+                f"Unsupported image type ({img.format or 'unknown'}). "
+                "Use PNG, JPEG, GIF, or WebP."
+            )
     except Exception:
         return None, "Invalid image file."
     ext = file.filename.rsplit(".", 1)[1].lower()
     if ext == "jpeg":
         ext = "jpg"
+    # MPO is saved as normal JPEG on disk
+    if fmt == "mpo" and ext not in ("jpg", "jpeg"):
+        ext = "jpg"
     filename = f"{uuid.uuid4().hex}.{ext}"
     filepath = os.path.join(upload_folder, filename)
-    if img.mode in ("RGBA", "P"):
+    if img.mode in ("RGBA", "P", "CMYK"):
         img = img.convert("RGB")
     img.thumbnail(MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
     img.save(filepath, quality=85, optimize=True)

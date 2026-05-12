@@ -290,11 +290,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!file.type.startsWith('image/')) return;
             var formData = new FormData();
             formData.append('image', file);
+            // Do not let fetch auto-follow redirects: the server consumes flash messages when
+            // rendering the redirect target HTML for the hidden follow-up GET. Then reload()
+            // loads the page again with no flashes. Use full navigation to the Location URL once.
             fetch('{{ url_for("profile.upload_image") }}', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': csrfToken },
-                body: formData
-            }).then(function() { location.reload(); });
+                body: formData,
+                redirect: 'manual'
+            }).then(function(r) {
+                if (r.status >= 300 && r.status < 400) {
+                    var loc = r.headers.get('Location');
+                    if (loc) {
+                        window.location.href = new URL(loc, window.location.origin).href;
+                        return;
+                    }
+                }
+                window.location.reload();
+            }).catch(function() {
+                window.location.reload();
+            });
         });
     }
 

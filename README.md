@@ -52,6 +52,7 @@ cp .env.example .env
 ```
 
 Edit `.env`: set `SECRET_KEY`, `DATABASE_URL`, and optionally `MAIL_*` for email.
+If you don't want to configure SMTP for evaluation, set `SHOW_VERIFICATION_LINK=True` to display the verification link on screen after registration.
 
 5. Create the PostgreSQL database:
 
@@ -65,10 +66,17 @@ Or in `psql`: `CREATE DATABASE matcha_db;`
 
 ```bash
 export FLASK_APP=run.py
-flask db init
-flask db migrate -m "initial"
-flask db upgrade
+flask init-db
 ```
+
+Windows (PowerShell):
+
+```powershell
+$env:FLASK_APP="run.py"
+flask init-db
+```
+
+Note: this project uses `migrations/schema.sql` applied by the custom `flask init-db` command (not Flask-Migrate).
 
 7. (Optional) Create `app/uploads` for user images:
 

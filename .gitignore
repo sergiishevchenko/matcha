@@ -58,3 +58,7 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+anna/
+app.log
+

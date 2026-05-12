@@ -60,11 +60,19 @@ def register():
     commit()
     log_auth("register", username, success=True)
     user_obj = User(id=row["id"], email=email, first_name=first_name)
-    try:
-        send_verification_email(user_obj, verification_token)
-    except Exception:
-        pass
-    flash("Account created. Please check your email to verify your account.", "success")
+    verify_url = url_for("auth.verify_email", token=verification_token, _external=True)
+    from flask import current_app
+    # Demo/evaluation mode: always show the verification link on screen
+    if current_app.config.get("SHOW_VERIFICATION_LINK"):
+        flash("Account created. Email verification link is shown below (demo mode).", "success")
+        flash(f"Verification link: {verify_url}", "success")
+    else:
+        try:
+            send_verification_email(user_obj, verification_token)
+        except Exception:
+            flash("Account created, but verification email could not be sent. Ask admin or try again later.", "error")
+            return redirect(url_for("auth.login"))
+        flash("Account created. Please check your email to verify your account.", "success")
     return redirect(url_for("auth.login"))
 
 
@@ -99,10 +107,15 @@ def resend_verification():
         execute("UPDATE users SET verification_token = %s WHERE id = %s", (new_token, row["id"]))
         commit()
         user_obj = User(id=row["id"], email=email, first_name=row["first_name"])
-        try:
-            send_verification_email(user_obj, new_token)
-        except Exception:
-            pass
+        from flask import current_app
+        verify_url = url_for("auth.verify_email", token=new_token, _external=True)
+        if current_app.config.get("SHOW_VERIFICATION_LINK"):
+            flash(f"Verification link: {verify_url}", "success")
+        else:
+            try:
+                send_verification_email(user_obj, new_token)
+            except Exception:
+                pass
     flash("If an unverified account exists with that email, a verification link has been sent.", "success")
     return redirect(url_for("auth.login"))
 

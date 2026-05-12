@@ -479,6 +479,15 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
+/* Profile view gallery: card has overflow:hidden; without max-width the image
+   stays at intrinsic width and is clipped — only a strip of the photo is visible. */
+.profile-view .images-grid .image-card img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
 .user-list {
     list-style: none;
 }
