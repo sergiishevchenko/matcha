@@ -17,7 +17,7 @@ class Config:
 
     # Demo / evaluation mode: do not require real SMTP.
     # If true, registration will show a verification link instead of sending email.
-    SHOW_VERIFICATION_LINK = os.environ.get("SHOW_VERIFICATION_LINK", "false").lower() == "true"
+    # SHOW_VERIFICATION_LINK = os.environ.get("SHOW_VERIFICATION_LINK", "false").lower() == "true"
 
     VERIFICATION_TOKEN_EXPIRY_HOURS = 24
     RESET_TOKEN_EXPIRY_HOURS = 1

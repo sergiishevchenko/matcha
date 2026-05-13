@@ -86,6 +86,8 @@ def create_app(config_class=None):
     def check_profile_complete():
         from flask_login import current_user
         from flask import request, redirect, url_for, flash
+        from app.utils.profile_completion import get_profile_completion_status
+
         if not current_user.is_authenticated:
             return
         allowed_prefixes = (
@@ -96,8 +98,14 @@ def create_app(config_class=None):
             return
         if request.path == "/":
             return
-        if not current_user.gender or not current_user.biography:
-            flash("Please complete your profile before browsing.", "error")
+        status = get_profile_completion_status(current_user.id)
+        if not status["ok"]:
+            need = ", ".join(status["missing"])
+            flash(
+                "Complete your profile before using this part of the site. "
+                f"Still needed: {need}.",
+                "error",
+            )
             return redirect(url_for("profile.edit"))
 
     @app.route("/")

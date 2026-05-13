@@ -43,6 +43,22 @@ def set_user_tags(user_id, tag_names):
     commit()
 
 
+def _render_profile_edit(user):
+    imgs = [
+        SimpleNamespace(**r)
+        for r in query_all(
+            "SELECT * FROM user_images WHERE user_id = %s ORDER BY upload_order",
+            (user.id,),
+        )
+    ]
+    return render_template(
+        "profile/edit.html",
+        user=user,
+        tags=get_user_tags(user.id),
+        images=imgs,
+    )
+
+
 @profile_bp.route("/")
 @profile_bp.route("/edit", methods=["GET", "POST"])
 @login_required
@@ -65,7 +81,7 @@ def edit():
                 pass
         if not first_name or not last_name or not email:
             flash("First name, last name and email are required.", "error")
-            return render_template("profile/edit.html", user=user, tags=get_user_tags(user.id))
+            return _render_profile_edit(user)
         if gender not in ("male", "female", "other", ""):
             gender = None
         if sexual_preference not in ("heterosexual", "homosexual", "bisexual", ""):
@@ -76,7 +92,7 @@ def edit():
             )
             if existing:
                 flash("Email already in use.", "error")
-                return render_template("profile/edit.html", user=user, tags=get_user_tags(user.id))
+                return _render_profile_edit(user)
         execute(
             "UPDATE users SET first_name=%s, last_name=%s, email=%s, birth_date=%s, "
             "gender=%s, sexual_preference=%s, biography=%s, updated_at=%s WHERE id=%s",
@@ -94,15 +110,7 @@ def edit():
         set_user_tags(user.id, tag_names)
         flash("Profile updated.", "success")
         return redirect(url_for("profile.edit"))
-    tags = get_user_tags(user.id)
-    images = [
-        SimpleNamespace(**r)
-        for r in query_all(
-            "SELECT * FROM user_images WHERE user_id = %s ORDER BY upload_order",
-            (user.id,),
-        )
-    ]
-    return render_template("profile/edit.html", user=user, tags=tags, images=images)
+    return _render_profile_edit(user)
 
 
 @profile_bp.route("/upload-image", methods=["POST"])

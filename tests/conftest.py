@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app import create_app, bcrypt
-from app.database import get_db, commit, execute, execute_returning, rollback
+from app.database import get_db, commit, execute, execute_returning, rollback, query_one
 
 
 def _test_db_url():
@@ -71,17 +71,24 @@ def user(app):
         password_hash = bcrypt.generate_password_hash("Test1234!").decode("utf-8")
         row = execute_returning(
             "INSERT INTO users (username, email, password_hash, first_name, last_name, "
-            "email_verified, gender, biography) "
-            "VALUES (%s, %s, %s, %s, %s, true, 'male', 'Test biography') RETURNING id",
+            "email_verified, gender, sexual_preference, biography) "
+            "VALUES (%s, %s, %s, %s, %s, true, 'male', 'heterosexual', 'Test biography') RETURNING id",
             ("testuser", "test@example.com", password_hash, "Test", "User"),
         )
         img = execute_returning(
-            "INSERT INTO user_images (user_id, filename) VALUES (%s, %s) RETURNING id",
+            "INSERT INTO user_images (user_id, filename, is_profile_picture) VALUES (%s, %s, true) RETURNING id",
             (row["id"], "test.jpg"),
         )
         execute(
             "UPDATE users SET profile_picture_id = %s WHERE id = %s",
             (img["id"], row["id"]),
+        )
+        tag = query_one("SELECT id FROM tags WHERE name = %s", ("music",))
+        if not tag:
+            tag = execute_returning("INSERT INTO tags (name) VALUES (%s) RETURNING id", ("music",))
+        execute(
+            "INSERT INTO user_tags (user_id, tag_id) VALUES (%s, %s)",
+            (row["id"], tag["id"]),
         )
         commit()
         return row["id"]
@@ -93,17 +100,24 @@ def user2(app):
         password_hash = bcrypt.generate_password_hash("Test1234!").decode("utf-8")
         row = execute_returning(
             "INSERT INTO users (username, email, password_hash, first_name, last_name, "
-            "email_verified, gender, biography) "
-            "VALUES (%s, %s, %s, %s, %s, true, 'female', 'Test2 biography') RETURNING id",
+            "email_verified, gender, sexual_preference, biography) "
+            "VALUES (%s, %s, %s, %s, %s, true, 'female', 'bisexual', 'Test2 biography') RETURNING id",
             ("testuser2", "test2@example.com", password_hash, "Test2", "User2"),
         )
         img = execute_returning(
-            "INSERT INTO user_images (user_id, filename) VALUES (%s, %s) RETURNING id",
+            "INSERT INTO user_images (user_id, filename, is_profile_picture) VALUES (%s, %s, true) RETURNING id",
             (row["id"], "test2.jpg"),
         )
         execute(
             "UPDATE users SET profile_picture_id = %s WHERE id = %s",
             (img["id"], row["id"]),
+        )
+        tag = query_one("SELECT id FROM tags WHERE name = %s", ("travel",))
+        if not tag:
+            tag = execute_returning("INSERT INTO tags (name) VALUES (%s) RETURNING id", ("travel",))
+        execute(
+            "INSERT INTO user_tags (user_id, tag_id) VALUES (%s, %s)",
+            (row["id"], tag["id"]),
         )
         commit()
         return row["id"]
