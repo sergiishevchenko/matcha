@@ -71,8 +71,10 @@ def user(app):
         password_hash = bcrypt.generate_password_hash("Test1234!").decode("utf-8")
         row = execute_returning(
             "INSERT INTO users (username, email, password_hash, first_name, last_name, birth_date, "
+            "latitude, longitude, location_enabled, "
             "email_verified, gender, sexual_preference, biography) "
-            "VALUES (%s, %s, %s, %s, %s, '1995-06-15', true, 'male', 'heterosexual', 'Test biography') RETURNING id",
+            "VALUES (%s, %s, %s, %s, %s, '1995-06-15', 46.2044, 6.1432, true, "
+            "true, 'male', 'heterosexual', 'Test biography') RETURNING id",
             ("testuser", "test@example.com", password_hash, "Test", "User"),
         )
         img = execute_returning(
@@ -100,8 +102,10 @@ def user2(app):
         password_hash = bcrypt.generate_password_hash("Test1234!").decode("utf-8")
         row = execute_returning(
             "INSERT INTO users (username, email, password_hash, first_name, last_name, birth_date, "
+            "latitude, longitude, location_enabled, "
             "email_verified, gender, sexual_preference, biography) "
-            "VALUES (%s, %s, %s, %s, %s, '1993-08-20', true, 'female', 'bisexual', 'Test2 biography') RETURNING id",
+            "VALUES (%s, %s, %s, %s, %s, '1993-08-20', 46.5197, 6.6323, true, "
+            "true, 'female', 'bisexual', 'Test2 biography') RETURNING id",
             ("testuser2", "test2@example.com", password_hash, "Test2", "User2"),
         )
         img = execute_returning(

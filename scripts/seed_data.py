@@ -105,6 +105,11 @@ def random_date(start_year=1985, end_year=2003):
     return (start + timedelta(days=random_days)).date()
 
 
+PLACE_NAMES = [
+    "Lausanne", "Geneva", "Zürich", "Bern", "Basel", "Lugano", "Chur", "St. Gallen", "Zug", "Nyon",
+]
+
+
 def create_users(count=500):
     all_tags = create_tags()
     password_hash = bcrypt.generate_password_hash("Test1234!").decode("utf-8")
@@ -127,16 +132,18 @@ def create_users(count=500):
         lon = city[1] + random.uniform(-0.1, 0.1)
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         last_seen = now - timedelta(minutes=random.randint(0, 10080))
+        place_label = PLACE_NAMES[i % len(PLACE_NAMES)]
         row = execute_returning(
             "INSERT INTO users (username, email, password_hash, first_name, last_name, "
             "birth_date, gender, sexual_preference, biography, latitude, longitude, "
-            "location_enabled, fame_rating, email_verified, is_online, last_seen) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s,true,%s,%s) RETURNING id",
+            "location_enabled, location_place, fame_rating, email_verified, is_online, last_seen) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s,%s,true,%s,%s) RETURNING id",
             (
                 username, email, password_hash, first_name, last_name,
                 random_date(), gender,
                 random.choice(["heterosexual", "homosexual", "bisexual"]),
                 random.choice(BIOS), lat, lon,
+                place_label,
                 random.randint(0, 100), random.choice([True, False]), last_seen,
             ),
         )

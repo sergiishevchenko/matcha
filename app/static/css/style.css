@@ -2111,25 +2111,17 @@ body {
     margin-top: 0.35rem;
 }
 
-.profile-edit .location-manual {
+.profile-edit .location-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     width: 100%;
-}
-
-.profile-edit .location-manual .form-row {
-    width: 100%;
-}
-
-.profile-edit .location-manual .form-row .form-group {
-    flex: 1 1 0;
-}
-
-.profile-edit .location-manual #btn-save-location,
-.profile-edit .location-actions #btn-geolocate {
-    width: 100%;
-}
-
-.profile-edit .location-manual #btn-save-location {
     margin-top: 0.75rem;
+}
+
+.profile-edit .location-actions #btn-geolocate,
+.profile-edit .location-actions #btn-save-city {
+    width: 100%;
 }
 
 .profile-edit .stats-grid {

@@ -10,6 +10,7 @@ from app.utils.fame import update_user_fame
 from app.utils.matching import calculate_age, haversine_distance
 from app.utils.notifications import emit_notification
 from app.utils.tags import canonical_tag_name, split_tags_input
+from app.utils.reverse_geocode import reverse_geocode_neighborhood, geocode_place_to_coordinates
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -214,19 +215,59 @@ def update_location():
     data = request.get_json() or {}
     lat = data.get("latitude")
     lng = data.get("longitude")
-    if lat is not None and lng is not None:
-        try:
-            lat = float(lat)
-            lng = float(lng)
-            if -90 <= lat <= 90 and -180 <= lng <= 180:
-                execute(
-                    "UPDATE users SET latitude=%s, longitude=%s, location_enabled=true WHERE id=%s",
-                    (lat, lng, current_user.id),
-                )
-                commit()
-                return jsonify({"success": True})
-        except (ValueError, TypeError):
-            pass
+    manual = data.get("manual") in (True, "true", 1, "1")
+    place = sanitize_string(data.get("place"), 200) if data.get("place") else ""
+    place = (place or "").strip() or None
+
+    if manual:
+        if not place:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Enter a city or neighborhood.",
+                }
+            ), 400
+        coords = geocode_place_to_coordinates(place)
+        if not coords:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Could not find that location. Try another spelling or add a region or country.",
+                }
+            ), 400
+        lat, lng = coords
+        fp = place[:200]
+        execute(
+            "UPDATE users SET latitude=%s, longitude=%s, location_enabled=false, location_place=%s WHERE id=%s",
+            (lat, lng, fp, current_user.id),
+        )
+        commit()
+        return jsonify({"success": True, "place": fp, "latitude": lat, "longitude": lng})
+
+    if lat is None or lng is None:
+        return jsonify({"success": False, "error": "Invalid coordinates"}), 400
+    try:
+        lat = float(lat)
+        lng = float(lng)
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            return jsonify({"success": False, "error": "Invalid coordinates"}), 400
+        execute(
+            "UPDATE users SET latitude=%s, longitude=%s, location_enabled=true WHERE id=%s",
+            (lat, lng, current_user.id),
+        )
+        resolved = reverse_geocode_neighborhood(lat, lng)
+        resolved = (resolved or "").strip() or None
+        final_place = resolved or place
+        if final_place:
+            fp = final_place[:200]
+            execute(
+                "UPDATE users SET location_place=%s WHERE id=%s",
+                (fp, current_user.id),
+            )
+        commit()
+        return jsonify({"success": True, "place": final_place, "latitude": lat, "longitude": lng})
+    except (ValueError, TypeError):
+        pass
     return jsonify({"success": False, "error": "Invalid coordinates"}), 400
 
 
@@ -273,7 +314,8 @@ def view(user_id):
     )
     commit()
     emit_notification(user.id, "view", current_user)
-    update_user_fame(user.id)
+    # fame_rating was loaded before profile_views insert; refresh so the page shows current value
+    user.fame_rating = update_user_fame(user.id)
     images = [
         SimpleNamespace(**r)
         for r in query_all(

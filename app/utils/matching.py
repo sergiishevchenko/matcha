@@ -98,6 +98,10 @@ def get_matching_candidates(current_user, filters=None):
             )
             params.extend(tag_names)
 
+    # Proximity matching requires coordinates; without GPS, subject requires declared city/area.
+    where.append("u.latitude IS NOT NULL AND u.longitude IS NOT NULL")
+    where.append("(u.location_enabled = true OR btrim(COALESCE(u.location_place, '')) <> '')")
+
     sql = (
         "SELECT u.*, ui.filename AS pp_filename, ui.id AS pp_id "
         "FROM users u LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
@@ -126,7 +130,19 @@ def score_user(user, current_user, my_tag_ids):
     return score
 
 
+def _user_ready_for_proximity_matching(user):
+    """Coordinates always; if GPS is off, city/neighborhood must be set (subject)."""
+    if user.latitude is None or user.longitude is None:
+        return False
+    if getattr(user, "location_enabled", False):
+        return True
+    place = getattr(user, "location_place", None) or ""
+    return bool(str(place).strip())
+
+
 def get_suggestions(current_user, sort_by=None, filters=None, limit=50):
+    if not _user_ready_for_proximity_matching(current_user):
+        return []
     rows = get_matching_candidates(current_user, filters)
     users = [_build_user(r) for r in rows]
     my_tag_ids = get_user_tag_ids(current_user.id)

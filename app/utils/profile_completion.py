@@ -1,4 +1,8 @@
-"""Matcha subject IV.2: profile must include birth date, gender, orientation, bio, tags, photos + main picture."""
+"""Matcha subject IV.2: profile must include birth date, gender, orientation, bio, tags, photos + main picture.
+
+Location for matching (subject): coordinates are required for proximity; if device GPS is not used,
+the user must declare city or neighborhood (location_place).
+"""
 
 from app.database import query_one
 
@@ -9,6 +13,7 @@ def get_profile_completion_status(user_id):
     """
     row = query_one(
         "SELECT u.gender, u.sexual_preference, u.biography, u.birth_date, u.profile_picture_id, "
+        "u.latitude, u.longitude, u.location_enabled, u.location_place, "
         "(SELECT COUNT(*)::int FROM user_tags ut WHERE ut.user_id = u.id) AS tag_count, "
         "(SELECT COUNT(*)::int FROM user_images ui WHERE ui.user_id = u.id) AS img_count "
         "FROM users u WHERE u.id = %s",
@@ -38,5 +43,13 @@ def get_profile_completion_status(user_id):
         pp_ok = chk is not None
     if row["img_count"] < 1 or not pp_ok:
         missing.append("at least one photo with a main profile picture")
+
+    lat, lng = row.get("latitude"), row.get("longitude")
+    if lat is None or lng is None:
+        missing.append("location coordinates (GPS or manual lat/lng)")
+    elif not row.get("location_enabled"):
+        place = (row.get("location_place") or "").strip()
+        if not place:
+            missing.append("city or neighborhood (required when not using device GPS)")
 
     return {"ok": len(missing) == 0, "missing": missing}

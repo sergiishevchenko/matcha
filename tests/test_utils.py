@@ -113,3 +113,18 @@ class TestCanonicalTags:
         assert split_tags_input("vegan geek") == ["vegan", "geek"]
         assert split_tags_input("a, b;c|d") == ["a", "b", "c", "d"]
         assert split_tags_input("#rock  roll") == ["#rock", "roll"]
+
+
+class TestBuildPlaceLabel:
+    def test_neighbourhood_and_city(self):
+        from app.utils.reverse_geocode import build_place_label_from_address
+
+        addr = {"neighbourhood": "Kreuzberg", "city": "Berlin"}
+        assert "Kreuzberg" in build_place_label_from_address(addr, None)
+        assert "Berlin" in build_place_label_from_address(addr, None)
+
+    def test_fallback_display_name(self):
+        from app.utils.reverse_geocode import build_place_label_from_address
+
+        dn = "10 Rue de Rivoli, Paris, Île-de-France, France"
+        assert build_place_label_from_address({}, dn) == "10 Rue de Rivoli, Paris, Île-de-France"

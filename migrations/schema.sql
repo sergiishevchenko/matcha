@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
     location_enabled BOOLEAN DEFAULT FALSE,
+    location_place VARCHAR(200),
     fame_rating INTEGER DEFAULT 0,
     email_verified BOOLEAN DEFAULT FALSE,
     verification_token VARCHAR(128),

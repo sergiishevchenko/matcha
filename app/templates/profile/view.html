@@ -24,6 +24,9 @@
             {% if distance is not none %}
             <p class="distance">{{ "%.1f"|format(distance) }} km away</p>
             {% endif %}
+            {% if user.location_place %}
+            <p class="location-place">{{ user.location_place }}</p>
+            {% endif %}
         </div>
     </div>
 

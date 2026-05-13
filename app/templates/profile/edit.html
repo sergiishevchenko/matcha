@@ -127,29 +127,15 @@
 
     <section class="profile-section">
         <h2>Location</h2>
-        <div class="location-info">
-            {% if user.latitude and user.longitude %}
-            <p>Current location: {{ "%.4f"|format(user.latitude) }}, {{ "%.4f"|format(user.longitude) }}</p>
-            {% else %}
-            <p>Location not set.</p>
-            {% endif %}
+        <p id="stored-coords" class="hint">{% if user.latitude is not none and user.longitude is not none %}Approximate map point: {{ "%.4f"|format(user.latitude) }}, {{ "%.4f"|format(user.longitude) }}{% else %}No map point saved yet.{% endif %}</p>
+        <div class="form-group">
+            <label for="location_place">City or neighborhood</label>
+            <input type="text" id="location_place" maxlength="200" value="{{ user.location_place or '' }}" placeholder="e.g. Paris, Kreuzberg, Geneva, Switzerland">
+            <p class="hint">Use <strong>Detect my location</strong> to set coordinates and we fill this when possible. If you opt out, type your city or area.</p>
         </div>
         <div class="location-actions">
             <button type="button" id="btn-geolocate" class="btn">Detect my location</button>
-        </div>
-        <div class="location-manual">
-            <p>Or enter coordinates manually:</p>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="manual-lat">Latitude</label>
-                    <input type="number" id="manual-lat" step="0.0001" min="-90" max="90" value="{{ user.latitude or '' }}">
-                </div>
-                <div class="form-group">
-                    <label for="manual-lng">Longitude</label>
-                    <input type="number" id="manual-lng" step="0.0001" min="-180" max="180" value="{{ user.longitude or '' }}">
-                </div>
-            </div>
-            <button type="button" id="btn-save-location" class="btn">Save location</button>
+            <button type="button" id="btn-save-city" class="btn btn-secondary">Save location</button>
         </div>
         <p id="location-status" class="hint"></p>
     </section>
@@ -182,28 +168,77 @@
 
 {% block scripts %}
 <script>
+var PROFILE_NEEDS_LOCATION = {{ (user.latitude is none or user.longitude is none) | tojson }};
 document.addEventListener('DOMContentLoaded', function() {
     var btnGeo = document.getElementById('btn-geolocate');
-    var btnSave = document.getElementById('btn-save-location');
+    var btnSaveCity = document.getElementById('btn-save-city');
     var status = document.getElementById('location-status');
-    var latInput = document.getElementById('manual-lat');
-    var lngInput = document.getElementById('manual-lng');
+    var placeInput = document.getElementById('location_place');
+    var storedCoords = document.getElementById('stored-coords');
+    var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    function updateLocation(lat, lng, manual) {
+    function setStoredCoords(lat, lng) {
+        if (storedCoords) {
+            storedCoords.textContent = 'Approximate map point: ' + Number(lat).toFixed(4) + ', ' + Number(lng).toFixed(4);
+        }
+    }
+
+    function updateLocationGps(lat, lng) {
+        var body = {latitude: lat, longitude: lng, manual: false};
+        if (placeInput && placeInput.value.trim()) {
+            body.place = placeInput.value.trim();
+        }
         fetch('{{ url_for("profile.update_location") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({latitude: lat, longitude: lng, manual: manual})
+            body: JSON.stringify(body)
         }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.success) {
-                status.textContent = 'Location updated.';
-                latInput.value = lat.toFixed(4);
-                lngInput.value = lng.toFixed(4);
+                if (data.latitude != null && data.longitude != null) {
+                    setStoredCoords(data.latitude, data.longitude);
+                }
+                status.textContent = data.place
+                    ? ('Location updated. Area: ' + data.place)
+                    : 'Location updated.';
+                if (data.place && placeInput) {
+                    placeInput.value = data.place;
+                }
             } else {
-                status.textContent = 'Failed to update location.';
+                status.textContent = data.error || 'Failed to update location.';
+            }
+        }).catch(function() {
+            status.textContent = 'Error updating location.';
+        });
+    }
+
+    function saveCityNoGps() {
+        var place = placeInput ? placeInput.value.trim() : '';
+        if (!place) {
+            status.textContent = 'Enter a city or neighborhood first.';
+            return;
+        }
+        status.textContent = 'Looking up location…';
+        fetch('{{ url_for("profile.update_location") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({manual: true, place: place})
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success) {
+                if (data.latitude != null && data.longitude != null) {
+                    setStoredCoords(data.latitude, data.longitude);
+                }
+                status.textContent = 'Saved: ' + (data.place || place) + ' (approximate coordinates).';
+                if (data.place && placeInput) {
+                    placeInput.value = data.place;
+                }
+            } else {
+                status.textContent = data.error || 'Could not save location.';
             }
         }).catch(function() {
             status.textContent = 'Error updating location.';
@@ -216,14 +251,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.latitude && data.longitude) {
-                    updateLocation(data.latitude, data.longitude, false);
+                    updateLocationGps(data.latitude, data.longitude);
                     status.textContent = 'Approximate location detected via IP.';
                 } else {
-                    status.textContent = 'Could not detect location. Please enter manually.';
+                    status.textContent = 'Could not detect automatically. Enter your city and use «Use this place (no GPS)».';
                 }
             })
             .catch(function() {
-                status.textContent = 'Could not detect location. Please enter manually.';
+                status.textContent = 'Could not detect automatically. Enter your city and use «Use this place (no GPS)».';
             });
     }
 
@@ -234,16 +269,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         status.textContent = 'Detecting location...';
         navigator.geolocation.getCurrentPosition(function(pos) {
-            updateLocation(pos.coords.latitude, pos.coords.longitude, false);
+            updateLocationGps(pos.coords.latitude, pos.coords.longitude);
         }, function(err) {
             fallbackIpLocation();
         });
     });
 
-    if (!latInput.value && !lngInput.value) {
+    if (btnSaveCity) {
+        btnSaveCity.addEventListener('click', saveCityNoGps);
+    }
+
+    if (PROFILE_NEEDS_LOCATION) {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(pos) {
-                updateLocation(pos.coords.latitude, pos.coords.longitude, false);
+                updateLocationGps(pos.coords.latitude, pos.coords.longitude);
             }, function(err) {
                 fallbackIpLocation();
             });
@@ -252,19 +291,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    btnSave.addEventListener('click', function() {
-        var lat = parseFloat(latInput.value);
-        var lng = parseFloat(lngInput.value);
-        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-            status.textContent = 'Invalid coordinates.';
-            return;
-        }
-        updateLocation(lat, lng, true);
-    });
-
     var dropzone = document.getElementById('dropzone');
     var fileInput = document.getElementById('file-input');
-    var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
     if (dropzone) {
         dropzone.addEventListener('click', function() { fileInput.click(); });
