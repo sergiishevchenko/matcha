@@ -1,4 +1,4 @@
-"""Matcha subject IV.2: profile must include gender, orientation, bio, tags, photos + main picture."""
+"""Matcha subject IV.2: profile must include birth date, gender, orientation, bio, tags, photos + main picture."""
 
 from app.database import query_one
 
@@ -8,7 +8,7 @@ def get_profile_completion_status(user_id):
     Returns {"ok": bool, "missing": [str, ...]} — missing items are short English labels for flash text.
     """
     row = query_one(
-        "SELECT u.gender, u.sexual_preference, u.biography, u.profile_picture_id, "
+        "SELECT u.gender, u.sexual_preference, u.biography, u.birth_date, u.profile_picture_id, "
         "(SELECT COUNT(*)::int FROM user_tags ut WHERE ut.user_id = u.id) AS tag_count, "
         "(SELECT COUNT(*)::int FROM user_images ui WHERE ui.user_id = u.id) AS img_count "
         "FROM users u WHERE u.id = %s",
@@ -18,6 +18,8 @@ def get_profile_completion_status(user_id):
         return {"ok": False, "missing": ["account"]}
 
     missing = []
+    if not row["birth_date"]:
+        missing.append("birth date")
     if not row["gender"]:
         missing.append("gender")
     if not row["sexual_preference"]:

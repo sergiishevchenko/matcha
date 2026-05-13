@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
@@ -56,6 +56,7 @@ def _render_profile_edit(user):
         user=user,
         tags=get_user_tags(user.id),
         images=imgs,
+        today_iso=date.today().isoformat(),
     )
 
 
@@ -73,12 +74,21 @@ def edit():
         sexual_preference = request.form.get("sexual_preference")
         biography = sanitize_string(request.form.get("biography"), 2000)
         tags_raw = request.form.get("tags", "")
-        birth_date = None
-        if birth_date_str:
-            try:
-                birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
-            except ValueError:
-                pass
+        if not birth_date_str or not str(birth_date_str).strip():
+            flash("Birth date is required.", "error")
+            return _render_profile_edit(user)
+        try:
+            birth_date = datetime.strptime(birth_date_str.strip(), "%Y-%m-%d").date()
+        except ValueError:
+            flash("Invalid birth date.", "error")
+            return _render_profile_edit(user)
+        if birth_date > date.today():
+            flash("Birth date cannot be in the future.", "error")
+            return _render_profile_edit(user)
+        age = calculate_age(birth_date)
+        if age is None or age < 18:
+            flash("You must be at least 18 years old.", "error")
+            return _render_profile_edit(user)
         if not first_name or not last_name or not email:
             flash("First name, last name and email are required.", "error")
             return _render_profile_edit(user)
