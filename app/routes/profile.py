@@ -1,4 +1,3 @@
-import re
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
@@ -10,6 +9,7 @@ from app.utils.images import save_image, delete_image_file
 from app.utils.fame import update_user_fame
 from app.utils.matching import calculate_age, haversine_distance
 from app.utils.notifications import emit_notification
+from app.utils.tags import canonical_tag_name, split_tags_input
 
 profile_bp = Blueprint("profile", __name__)
 
@@ -28,8 +28,8 @@ def get_user_tags(user_id):
 def set_user_tags(user_id, tag_names):
     execute("DELETE FROM user_tags WHERE user_id = %s", (user_id,))
     seen = set()
-    for name in tag_names[:MAX_TAGS]:
-        name = re.sub(r"[^a-z0-9_-]", "", name.lower().strip())
+    for raw in tag_names[:MAX_TAGS]:
+        name = canonical_tag_name(raw)
         if not name or name in seen:
             continue
         seen.add(name)
@@ -106,7 +106,7 @@ def edit():
             ),
         )
         commit()
-        tag_names = [t.strip() for t in tags_raw.split(",") if t.strip()]
+        tag_names = split_tags_input(tags_raw)
         set_user_tags(user.id, tag_names)
         flash("Profile updated.", "success")
         return redirect(url_for("profile.edit"))

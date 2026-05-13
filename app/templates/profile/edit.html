@@ -117,8 +117,8 @@
                 <textarea id="biography" name="biography" rows="4" maxlength="2000">{{ user.biography or '' }}</textarea>
             </div>
             <div class="form-group tags-group">
-                <label for="tags">Interests (comma-separated)</label>
-                <input type="text" id="tags" name="tags" value="{{ tags|join(', ') }}" placeholder="music, travel, coding">
+                <label for="tags">Interests (tags)</label>
+                <input type="text" id="tags" name="tags" value="{{ tags|tags_form_value }}" placeholder="#music #travel #geek">
                 <p class="hint">Add up to 10 tags to describe your interests.</p>
             </div>
             <button type="submit" class="btn btn-block">Save changes</button>

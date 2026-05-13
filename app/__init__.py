@@ -82,6 +82,12 @@ def create_app(config_class=None):
     ):
         init_oauth(app)
 
+    from app.utils.tags import tags_display_form_value
+
+    @app.template_filter("tags_form_value")
+    def _tags_form_value_filter(tags):
+        return tags_display_form_value(tags)
+
     @app.before_request
     def check_profile_complete():
         from flask_login import current_user

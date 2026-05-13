@@ -2,6 +2,7 @@ import pytest
 from app.utils.security import is_password_strong, sanitize_string
 from app.utils.validators import is_valid_email, is_valid_username, is_valid_name
 from app.utils.matching import calculate_age, haversine_distance
+from app.utils.tags import canonical_tag_name, tags_display_form_value, split_tags_input
 from datetime import date
 
 
@@ -97,3 +98,18 @@ class TestMatching:
     def test_haversine_same_point(self):
         distance = haversine_distance(47.0, 8.0, 47.0, 8.0)
         assert distance == 0
+
+
+class TestCanonicalTags:
+    def test_strip_hash(self):
+        assert canonical_tag_name("#vegan") == "vegan"
+        assert canonical_tag_name("##geek") == "geek"
+
+    def test_display_form_value(self):
+        assert tags_display_form_value(["vegan", "geek"]) == "#vegan, #geek"
+        assert tags_display_form_value([]) == ""
+
+    def test_split_tags_input(self):
+        assert split_tags_input("vegan geek") == ["vegan", "geek"]
+        assert split_tags_input("a, b;c|d") == ["a", "b", "c", "d"]
+        assert split_tags_input("#rock  roll") == ["#rock", "roll"]

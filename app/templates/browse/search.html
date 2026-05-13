@@ -43,7 +43,7 @@
                     <label class="sf-field sf-field-grow sf-field-tags">
                         <span>Tags</span>
                         <div class="sf-tags-wrap">
-                            <input type="text" name="tags" placeholder="music, travel, coding" value="{{ filters.get('tags', '') }}">
+                            <input type="text" name="tags" placeholder="#music, #travel, #geek" value="{{ filters.get('tags', '') }}">
                             {% if all_tags %}
                             <div class="popular-tags search-popular-tags">
                                 <strong class="popular-tags-label">Popular tags:</strong>
@@ -119,11 +119,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var tagsInput = document.querySelector('input[name="tags"]');
     tagBtns.forEach(function(btn) {
         btn.addEventListener('click', function() {
-            var tag = btn.getAttribute('data-tag');
+            var tag = btn.getAttribute('data-tag') || '';
+            var base = tag.replace(/^#+/, '').trim().toLowerCase();
+            if (!base) return;
+            var piece = '#' + base;
             var current = tagsInput.value.trim();
-            var tags = current ? current.split(',').map(function(t) { return t.trim(); }) : [];
-            if (tags.indexOf(tag) === -1) {
-                tags.push(tag);
+            var tags = current ? current.split(/[,;\s|]+/).map(function(t) { return t.trim(); }).filter(Boolean) : [];
+            function norm(s) { return s.replace(/^#+/, '').trim().toLowerCase(); }
+            if (!tags.some(function(t) { return norm(t) === base; })) {
+                tags.push(piece);
                 tagsInput.value = tags.join(', ');
             }
         });

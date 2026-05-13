@@ -2,6 +2,7 @@ import math
 from datetime import date
 from types import SimpleNamespace
 from app.database import query_all
+from app.utils.tags import canonical_tag_name, split_tags_input
 
 
 def calculate_age(birth_date):
@@ -82,7 +83,13 @@ def get_matching_candidates(current_user, filters=None):
         where.append("u.fame_rating <= %s")
         params.append(int(filters["fame_max"]))
     if filters.get("tags"):
-        tag_names = [t.strip().lower() for t in filters["tags"].split(",") if t.strip()]
+        seen_names = set()
+        tag_names = []
+        for t in split_tags_input(filters.get("tags")):
+            c = canonical_tag_name(t)
+            if c and c not in seen_names:
+                seen_names.add(c)
+                tag_names.append(c)
         if tag_names:
             ph = ",".join(["%s"] * len(tag_names))
             where.append(
